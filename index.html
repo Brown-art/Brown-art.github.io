@@ -2,136 +2,90 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Math Workspace & Analytics Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Zero-Build Arena</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: #0d1117;
-            color: #c9d1d9;
-            margin: 0;
-            padding: 40px 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            max-width: 650px;
-            width: 100%;
-        }
-
-        header {
-            border-bottom: 1px solid #21262d;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #58a6ff;
-            font-size: 2.2rem;
-            margin: 0 0 10px 0;
-        }
-
-        p {
-            color: #8b949e;
-            font-size: 1.1rem;
-            line-height: 1.6;
-        }
-
-        .card {
-            background-color: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 24px;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-
-        .card h3 {
-            color: #58a6ff;
-            margin-top: 0;
-        }
-
-        /* Interactive Drawing Sketchpad Section */
-        canvas {
-            background-color: #0d1117;
-            border: 2px solid #30363d;
-            border-radius: 6px;
-            margin-top: 15px;
-            cursor: crosshair;
-            touch-action: none; /* Required for iPad touch drawing */
-        }
-
-        .btn {
-            background-color: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 15px;
-            transition: background 0.2s;
-        }
-
-        .btn:hover {
-            background-color: #30363d;
-            color: #ffffff;
-        }
+        body { font-family: monospace; background-color: #0b0f19; color: #ffffff; margin: 0; padding: 0; overflow: hidden; user-select: none; }
+        .hud { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; font-size: 1.2rem; font-weight: bold; z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
+        .health { color: #10b981; } .storm { color: #a855f7; } .alive { color: #f59e0b; }
+        #canvas-container { width: 100vw; height: 100vh; touch-action: none; }
+        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
+        .screen-overlay h2 { font-size: 2.5rem; margin-bottom: 10px; }
+        .win { color: #10b981; } .lose { color: #ef4444; }
+        .btn { background-color: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
     </style>
+    <script src="https://cloudflare.com"></script>
 </head>
 <body>
-
-    <div class="container">
-        <header>
-            <h1>Math Sandbox Framework v1.0</h1>
-            <p>A secure, browser-side terminal engineered for executing algorithmic formulas, graphing layout configurations, and managing custom workspace study modules.</p>
-        </header>
-
-        <div class="card">
-            <h3>Module 01: Geometric Sketchpad</h3>
-            <p>Tap and drag your finger inside the coordinate zone below to draw formulas or plot vectors directly onto the grid.</p>
-            
-            <!-- This is the drawing board layout -->
-            <canvas id="mathCanvas" width="320" height="240"></canvas>
-            <br>
-            <button class="btn" onclick="clearGrid()">Reset Sketchpad</button>
-        </div>
+    <div class="hud">
+        <span class="health">HP: <span id="hpVal">100</span></span>
+        <span class="storm">STORM: <span id="stormVal">SAFE</span></span>
+        <span class="alive">ALIVE: <span id="playersVal">5</span></span>
     </div>
-
+    <div id="screenOverlay" class="screen-overlay" style="display: none;">
+        <h2 id="resultTitle" class="win">VICTORY ROYALE!</h2>
+        <p id="resultText">You eliminated all bots.</p>
+        <button class="btn" onclick="resetGame()">Queue Match</button>
+    </div>
+    <div id="canvas-container"></div>
     <script>
-        const canvas = document.getElementById('mathCanvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false;
-
-        // Tracks point drawing controls for iPad screens
-        canvas.addEventListener('pointerdown', (e) => { 
-            isDrawing = true; 
-            ctx.beginPath(); 
-            ctx.moveTo(e.offsetX, e.offsetY); 
-        });
-        
-        canvas.addEventListener('pointermove', (e) => { 
-            if (isDrawing) { 
-                ctx.lineTo(e.offsetX, e.offsetY); 
-                ctx.strokeStyle = '#58a6ff'; // Matches the blue layout color
-                ctx.lineWidth = 3; 
-                ctx.lineCap = 'round';
-                ctx.stroke(); 
-            } 
-        });
-        
-        canvas.addEventListener('pointerup', () => isDrawing = false);
-        canvas.addEventListener('pointerleave', () => isDrawing = false);
-
-        // Clears the canvas matrix back to empty
-        function clearGrid() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let scene, camera, renderer, player, ground, stormMesh, bots = [], hp = 100, stormRadius = 60, gameActive = true, targetX = 0, targetZ = 0;
+        const container = document.getElementById('canvas-container');
+        function init() {
+            scene = new THREE.Scene(); scene.background = new THREE.Color(0x0f172a); scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000); camera.position.set(0, 12, 18);
+            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6)); const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(20, 40, 20); scene.add(dirLight);
+            ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+            const gridHelper = new THREE.GridHelper(150, 30, 0x3b82f6, 0x1e293b); gridHelper.position.y = 0.01; scene.add(gridHelper);
+            player = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 2, 16), new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })); player.position.y = 1; scene.add(player);
+            const botGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 16), botMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2, bMesh = new THREE.Mesh(botGeo, botMat);
+                bMesh.position.set(Math.cos(angle) * 35, 1, Math.sin(angle) * 35); scene.add(bMesh);
+                bots.push({ mesh: bMesh, dx: (Math.random() - 0.5) * 0.2, dz: (Math.random() - 0.5) * 0.2, alive: true });
+            }
+            updateStormMesh(); window.addEventListener('pointermove', (e) => { if (!gameActive) return; targetX = ((e.clientX / window.innerWidth) - 0.5) * 60; targetZ = ((e.clientY / window.innerHeight) - 0.5) * 60; });
+            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+            animate();
         }
+        function updateStormMesh() {
+            if (stormMesh) scene.remove(stormMesh);
+            stormMesh = new THREE.Mesh(new THREE.TorusGeometry(stormRadius, 0.4, 8, 48), new THREE.MeshBasicMaterial({ color: 0xa855f7 }));
+            stormMesh.rotation.x = Math.PI / 2; stormMesh.position.y = 0.1; scene.add(stormMesh);
+        }
+        function animate() {
+            if (!gameActive) return; requestAnimationFrame(animate);
+            player.position.x += (targetX - player.position.x) * 0.05; player.position.z += (targetZ - player.position.z) * 0.05;
+            camera.position.set(player.position.x, player.position.y + 10, player.position.z + 16); camera.lookAt(player.position);
+            if (stormRadius > 10) { stormRadius -= 0.015; updateStormMesh(); }
+            if (Math.sqrt(player.position.x**2 + player.position.z**2) > stormRadius) { hp -= 0.15; document.getElementById('stormVal').textContent = "RUN!"; } else { document.getElementById('stormVal').textContent = "SAFE"; }
+            document.getElementById('hpVal').textContent = Math.max(0, Math.floor(hp)); if (hp <= 0) endGame(false);
+            let remainingBots = 0;
+            bots.forEach(bot => {
+                if (!bot.alive) return; remainingBots++; bot.mesh.position.x += bot.dx; bot.mesh.position.z += bot.dz;
+                if (Math.abs(bot.mesh.position.x) > 65) bot.dx *= -1; if (Math.abs(bot.mesh.position.z) > 65) bot.dz *= -1;
+                if (Math.sqrt(bot.mesh.position.x**2 + bot.mesh.position.z**2) > stormRadius + 10) { bot.alive = false; scene.remove(bot.mesh); }
+                if (player.position.distanceTo(bot.mesh.position) < 1.8) { bot.alive = false; scene.remove(bot.mesh); hp -= 20; }
+            });
+            document.getElementById('playersVal').textContent = remainingBots + 1; if (remainingBots === 0) endGame(true);
+            renderer.render(scene, camera);
+        }
+        function endGame(isVictory) {
+            gameActive = false; const overlay = document.getElementById('screenOverlay'), title = document.getElementById('resultTitle'), text = document.getElementById('resultText');
+            overlay.style.display = 'flex'; if (isVictory) { title.textContent = "VICTORY ROYALE!"; title.className = "win"; text.textContent = "You survived the storm and defeated the AI squad."; }
+            else { title.textContent = "ELIMINATED"; title.className = "lose"; text.textContent = "The storm or an opponent overwhelmed your shield system."; }
+        }
+        function resetGame() {
+            document.getElementById('screenOverlay').style.display = 'none'; hp = 100; stormRadius = 60; player.position.set(0, 1, 0); targetX = 0; targetZ = 0;
+            bots.forEach(bot => scene.remove(bot.mesh)); bots = []; const botGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 16), botMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2, bMesh = new THREE.Mesh(botGeo, botMat); bMesh.position.set(Math.cos(angle) * 30, 1, Math.sin(angle) * 30); scene.add(bMesh);
+                bots.push({ mesh: bMesh, dx: (Math.random() - 0.5) * 0.2, dz: (Math.random() - 0.5) * 0.2, alive: true });
+            }
+            gameActive = true; animate();
+        }
+        window.onload = init;
     </script>
-
 </body>
 </html>
