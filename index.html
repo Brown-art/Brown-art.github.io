@@ -1,183 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mini Number Guessing Game</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e24;
-            color: #fff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            user-select: none;
-        }
-
-        .game-container {
-            background-color: #2a2a35;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-
-        h1 {
-            margin-top: 0;
-            color: #00adb5;
-        }
-
-        .input-group {
-            margin: 20px 0;
-        }
-
-        input[type="number"] {
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 6px;
-            border: 2px solid #5a5a65;
-            background-color: #1e1e24;
-            color: white;
-            width: 80px;
-            text-align: center;
-        }
-
-        button {
-            background-color: #00adb5;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-left: 10px;
-        }
-
-        button:hover {
-            background-color: #008c95;
-        }
-
-        .message {
-            margin-top: 15px;
-            font-size: 18px;
-            font-weight: 500;
-            min-height: 27px;
-        }
-
-        /* Initial overlay screen to capture the browser's required click gesture */
-        .start-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #1e1e24;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Review Worksheet</title>
+<style>
+/* Traditional, minimal print-out math homework aesthetic */
+body {
+    font-family: 'Times New Roman', Times, serif;
+    background-color: #ffffff;
+    color: #111111;
+    margin: 0;
+    padding: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    user-select: none;
+    cursor: pointer; /* Makes the entire screen space responsive to a click */
+}
+.worksheet-paper {
+    max-width: 650px;
+    width: 100%;
+    padding: 20px;
+    pointer-events: auto;
+}
+.header-section {
+    border-bottom: 1px solid #000000;
+    padding-bottom: 10px;
+    margin-bottom: 40px;
+}
+.student-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 16px;
+    margin-bottom: 15px;
+}
+h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: normal;
+    text-align: center;
+}
+.instructions {
+    font-style: italic;
+    margin-bottom: 30px;
+    font-size: 14px;
+}
+.problem-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 40px 0;
+}
+/* Input field styled like a standard black blank line on a test sheet */
+input[type="number"] {
+    font-family: inherit;
+    font-size: 24px;
+    border: none;
+    border-bottom: 2px solid #000000;
+    width: 90px;
+    text-align: center;
+    margin-left: 10px;
+    background: transparent;
+    color: #000000;
+}
+input[type="number"]:focus {
+    outline: none;
+}
+/* Hides the default up/down arrows inside the numeric field */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.status-message {
+    margin-top: 30px;
+    font-size: 16px;
+    text-align: center;
+    min-height: 24px;
+}
+</style>
 </head>
 <body>
 
-    <!-- The user click on this button satisfies the browser's audio permission rule -->
-    <div class="start-overlay" id="startOverlay">
-        <h2>Welcome to the Number Challenge</h2>
-        <p>Guess the hidden number between 1 and 100.</p>
-        <button id="startGameBtn">Start Game</button>
-    </div>
-
-    <!-- The actual interactive game interface -->
-    <div class="game-container">
-        <h1>Guess The Number</h1>
-        <p>I am thinking of a number between 1 and 100. Can you guess it?</p>
-        
-        <div class="input-group">
-            <input type="number" id="guessInput" min="1" max="100" placeholder="50">
-            <button id="guessBtn">Guess</button>
+<!-- Paper Document Layout -->
+<div class="worksheet-paper">
+    <div class="header-section">
+        <div class="student-info">
+            <span><strong>Name:</strong> ________________________</span>
+            <span><strong>Score:</strong> <span id="scoreCounter">0</span> / 10</span>
         </div>
-
-        <div class="message" id="feedbackMsg"></div>
+        <h2>Chapter 3: Arithmetic Evaluation</h2>
     </div>
+    
+    <p class="instructions">Directions: Solve the multiplication problem below. Type your response onto the line and press the "Enter" key on your keyboard to log your answer configuration.</p>
+    
+    <div class="problem-row">
+        <span id="equationText">0 × 0 = </span>
+        <input type="number" id="responseLine" placeholder="">
+    </div>
+    
+    <div class="status-message" id="homeworkFeedback"></div>
+</div>
 
-    <!-- Audio element with standard looping enabled -->
-    <audio id="backgroundAudio" src="https://example.com" loop></audio>
+<!-- Audio Streams -->
+<audio id="memeTrack" src="cut-me-off.mp3" loop></audio>
+<audio id="rickrollTrack" src="rickroll.mp3" loop></audio>
 
-    <script>
-        // Game Variables
-        let targetNumber;
-        let attempts = 0;
-        
-        // DOM Elements
-        const startOverlay = document.getElementById('startOverlay');
-        const startGameBtn = document.getElementById('startGameBtn');
-        const guessInput = document.getElementById('guessInput');
-        const guessBtn = document.getElementById('guessBtn');
-        const feedbackMsg = document.getElementById('feedbackMsg');
-        const audio = document.getElementById('backgroundAudio');
+<script>
+// Worksheet Data
+let factor1 = 0;
+let factor2 = 0;
+let scoreCount = 0;
+let calculatedProduct = 0;
 
-        // Initialization function to pick a number
-        function initGame() {
-            targetNumber = Math.floor(Math.random() * 100) + 1;
-            attempts = 0;
-            feedbackMsg.textContent = "";
-            feedbackMsg.style.color = "#fff";
-            guessInput.value = "";
+// Interaction Trackers
+let sequenceClicks = 0;
+let runningAudioNode = null;
+
+// Core Element Target Mappings
+const equationText = document.getElementById('equationText');
+const responseLine = document.getElementById('responseLine');
+const homeworkFeedback = document.getElementById('homeworkFeedback');
+const scoreCounter = document.getElementById('scoreCounter');
+const memeTrack = document.getElementById('memeTrack');
+const rickrollTrack = document.getElementById('rickrollTrack');
+
+// Routine to produce clean math problems
+function generateProblem() {
+    factor1 = Math.floor(Math.random() * 9) + 2;
+    factor2 = Math.floor(Math.random() * 9) + 2;
+    calculatedProduct = factor1 * factor2;
+    equationText.textContent = `${factor1} × ${factor2} = `;
+    responseLine.value = "";
+}
+
+// Generate the initial question
+generateProblem();
+
+// 1. DYNAMIC CLICK ROUTER: Monitors the whole document page area
+document.body.addEventListener('click', (e) => {
+    // Safe exclusion: typing in the answer blank doesn't count as a background page trigger
+    if (e.target.tagName === 'INPUT') {
+        return;
+    }
+    
+    sequenceClicks++;
+    
+    if (sequenceClicks === 1) {
+        // First screen interaction: start 'Cut Me Off' loop
+        runningAudioNode = memeTrack;
+        runningAudioNode.play().catch(err => console.log("Stream notification:", err));
+    } else if (sequenceClicks === 2) {
+        // Second screen interaction: reset previous node, swap to Rickroll loop
+        if (runningAudioNode) {
+            runningAudioNode.pause();
+            runningAudioNode.currentTime = 0;
         }
+        runningAudioNode = rickrollTrack;
+        runningAudioNode.play().catch(err => console.log("Stream notification:", err));
+    }
+});
 
-        // Handle the initial entry click
-        startGameBtn.addEventListener('click', () => {
-            // Remove the overlay to show the game
-            startOverlay.style.display = 'none';
-            initGame();
-
-            // Start the looping sound effect seamlessly
-            audio.play().catch(err => {
-                console.log("Audio playback was intercepted by the browser:", err);
-            });
-        });
-
-        // Core game logic for checking the guess
-        guessBtn.addEventListener('click', () => {
-            const userGuess = parseInt(guessInput.value);
-
-            if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
-                feedbackMsg.textContent = "Please enter a valid number between 1 and 100.";
-                feedbackMsg.style.color = "#d9534f";
-                return;
-            }
-
-            attempts++;
-
-            if (userGuess === targetNumber) {
-                feedbackMsg.textContent = `Correct! You found it in ${attempts} attempts!`;
-                feedbackMsg.style.color = "#5cb85c";
-            } else if (userGuess < targetNumber) {
-                feedbackMsg.textContent = "Too low! Try a higher number.";
-                feedbackMsg.style.color = "#f0ad4e";
-            } else {
-                feedbackMsg.textContent = "Too high! Try a lower number.";
-                feedbackMsg.style.color = "#f0ad4e";
-            }
-        });
-
-        // Allow pressing 'Enter' in the input box to submit a guess
-        guessInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                guessBtn.click();
-            }
-        });
-    </script>
+// 2. ENTER KEY MONITOR: Submits answers using the keyboard instead of a button
+responseLine.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        const submittedVal = parseInt(responseLine.value);
+        if (isNaN(submittedVal)) {
+            homeworkFeedback.textContent = "Please input a valid numeric value before verifying.";
+            homeworkFeedback.style.color = "#cc0000";
+            return;
+        }
+        if (submittedVal === calculatedProduct) {
+            scoreCount++;
+            scoreCounter.textContent = scoreCount;
+            homeworkFeedback.textContent = "Submission accepted.";
+            homeworkFeedback.style.color = "#006600";
+            setTimeout(generateProblem, 1200);
+        } else {
+            homeworkFeedback.textContent = "Incorrect calculation. Re-evaluate factors.";
+            homeworkFeedback.style.color = "#cc0000";
+        }
+    }
+});
+</script>
 
 </body>
 </html>
