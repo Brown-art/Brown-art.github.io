@@ -2,90 +2,182 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Zero-Build Arena</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Number Guessing Game</title>
     <style>
-        body { font-family: monospace; background-color: #0b0f19; color: #ffffff; margin: 0; padding: 0; overflow: hidden; user-select: none; }
-        .hud { position: absolute; top: 15px; width: 100%; display: flex; justify-content: space-around; font-size: 1.2rem; font-weight: bold; z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); pointer-events: none; }
-        .health { color: #10b981; } .storm { color: #a855f7; } .alive { color: #f59e0b; }
-        #canvas-container { width: 100vw; height: 100vh; touch-action: none; }
-        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 20; }
-        .screen-overlay h2 { font-size: 2.5rem; margin-bottom: 10px; }
-        .win { color: #10b981; } .lose { color: #ef4444; }
-        .btn { background-color: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e24;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            user-select: none;
+        }
+
+        .game-container {
+            background-color: #2a2a35;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: #00adb5;
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        input[type="number"] {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 2px solid #5a5a65;
+            background-color: #1e1e24;
+            color: white;
+            width: 80px;
+            text-align: center;
+        }
+
+        button {
+            background-color: #00adb5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-left: 10px;
+        }
+
+        button:hover {
+            background-color: #008c95;
+        }
+
+        .message {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: 500;
+            min-height: 27px;
+        }
+
+        /* Initial overlay screen to capture the browser's required click gesture */
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1e1e24;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
     </style>
-    <script src="https://cloudflare.com"></script>
 </head>
 <body>
-    <div class="hud">
-        <span class="health">HP: <span id="hpVal">100</span></span>
-        <span class="storm">STORM: <span id="stormVal">SAFE</span></span>
-        <span class="alive">ALIVE: <span id="playersVal">5</span></span>
+
+    <!-- The user click on this button satisfies the browser's audio permission rule -->
+    <div class="start-overlay" id="startOverlay">
+        <h2>Welcome to the Number Challenge</h2>
+        <p>Guess the hidden number between 1 and 100.</p>
+        <button id="startGameBtn">Start Game</button>
     </div>
-    <div id="screenOverlay" class="screen-overlay" style="display: none;">
-        <h2 id="resultTitle" class="win">VICTORY ROYALE!</h2>
-        <p id="resultText">You eliminated all bots.</p>
-        <button class="btn" onclick="resetGame()">Queue Match</button>
+
+    <!-- The actual interactive game interface -->
+    <div class="game-container">
+        <h1>Guess The Number</h1>
+        <p>I am thinking of a number between 1 and 100. Can you guess it?</p>
+        
+        <div class="input-group">
+            <input type="number" id="guessInput" min="1" max="100" placeholder="50">
+            <button id="guessBtn">Guess</button>
+        </div>
+
+        <div class="message" id="feedbackMsg"></div>
     </div>
-    <div id="canvas-container"></div>
+
+    <!-- Audio element with standard looping enabled -->
+    <audio id="backgroundAudio" src="https://example.com" loop></audio>
+
     <script>
-        let scene, camera, renderer, player, ground, stormMesh, bots = [], hp = 100, stormRadius = 60, gameActive = true, targetX = 0, targetZ = 0;
-        const container = document.getElementById('canvas-container');
-        function init() {
-            scene = new THREE.Scene(); scene.background = new THREE.Color(0x0f172a); scene.fog = new THREE.FogExp2(0x0f172a, 0.015);
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000); camera.position.set(0, 12, 18);
-            renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); container.appendChild(renderer.domElement);
-            scene.add(new THREE.AmbientLight(0xffffff, 0.6)); const dirLight = new THREE.DirectionalLight(0xffffff, 0.8); dirLight.position.set(20, 40, 20); scene.add(dirLight);
-            ground = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
-            const gridHelper = new THREE.GridHelper(150, 30, 0x3b82f6, 0x1e293b); gridHelper.position.y = 0.01; scene.add(gridHelper);
-            player = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 2, 16), new THREE.MeshStandardMaterial({ color: 0x3b82f6, roughness: 0.3 })); player.position.y = 1; scene.add(player);
-            const botGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 16), botMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
-            for (let i = 0; i < 4; i++) {
-                const angle = (i / 4) * Math.PI * 2, bMesh = new THREE.Mesh(botGeo, botMat);
-                bMesh.position.set(Math.cos(angle) * 35, 1, Math.sin(angle) * 35); scene.add(bMesh);
-                bots.push({ mesh: bMesh, dx: (Math.random() - 0.5) * 0.2, dz: (Math.random() - 0.5) * 0.2, alive: true });
-            }
-            updateStormMesh(); window.addEventListener('pointermove', (e) => { if (!gameActive) return; targetX = ((e.clientX / window.innerWidth) - 0.5) * 60; targetZ = ((e.clientY / window.innerHeight) - 0.5) * 60; });
-            window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
-            animate();
+        // Game Variables
+        let targetNumber;
+        let attempts = 0;
+        
+        // DOM Elements
+        const startOverlay = document.getElementById('startOverlay');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const guessInput = document.getElementById('guessInput');
+        const guessBtn = document.getElementById('guessBtn');
+        const feedbackMsg = document.getElementById('feedbackMsg');
+        const audio = document.getElementById('backgroundAudio');
+
+        // Initialization function to pick a number
+        function initGame() {
+            targetNumber = Math.floor(Math.random() * 100) + 1;
+            attempts = 0;
+            feedbackMsg.textContent = "";
+            feedbackMsg.style.color = "#fff";
+            guessInput.value = "";
         }
-        function updateStormMesh() {
-            if (stormMesh) scene.remove(stormMesh);
-            stormMesh = new THREE.Mesh(new THREE.TorusGeometry(stormRadius, 0.4, 8, 48), new THREE.MeshBasicMaterial({ color: 0xa855f7 }));
-            stormMesh.rotation.x = Math.PI / 2; stormMesh.position.y = 0.1; scene.add(stormMesh);
-        }
-        function animate() {
-            if (!gameActive) return; requestAnimationFrame(animate);
-            player.position.x += (targetX - player.position.x) * 0.05; player.position.z += (targetZ - player.position.z) * 0.05;
-            camera.position.set(player.position.x, player.position.y + 10, player.position.z + 16); camera.lookAt(player.position);
-            if (stormRadius > 10) { stormRadius -= 0.015; updateStormMesh(); }
-            if (Math.sqrt(player.position.x**2 + player.position.z**2) > stormRadius) { hp -= 0.15; document.getElementById('stormVal').textContent = "RUN!"; } else { document.getElementById('stormVal').textContent = "SAFE"; }
-            document.getElementById('hpVal').textContent = Math.max(0, Math.floor(hp)); if (hp <= 0) endGame(false);
-            let remainingBots = 0;
-            bots.forEach(bot => {
-                if (!bot.alive) return; remainingBots++; bot.mesh.position.x += bot.dx; bot.mesh.position.z += bot.dz;
-                if (Math.abs(bot.mesh.position.x) > 65) bot.dx *= -1; if (Math.abs(bot.mesh.position.z) > 65) bot.dz *= -1;
-                if (Math.sqrt(bot.mesh.position.x**2 + bot.mesh.position.z**2) > stormRadius + 10) { bot.alive = false; scene.remove(bot.mesh); }
-                if (player.position.distanceTo(bot.mesh.position) < 1.8) { bot.alive = false; scene.remove(bot.mesh); hp -= 20; }
+
+        // Handle the initial entry click
+        startGameBtn.addEventListener('click', () => {
+            // Remove the overlay to show the game
+            startOverlay.style.display = 'none';
+            initGame();
+
+            // Start the looping sound effect seamlessly
+            audio.play().catch(err => {
+                console.log("Audio playback was intercepted by the browser:", err);
             });
-            document.getElementById('playersVal').textContent = remainingBots + 1; if (remainingBots === 0) endGame(true);
-            renderer.render(scene, camera);
-        }
-        function endGame(isVictory) {
-            gameActive = false; const overlay = document.getElementById('screenOverlay'), title = document.getElementById('resultTitle'), text = document.getElementById('resultText');
-            overlay.style.display = 'flex'; if (isVictory) { title.textContent = "VICTORY ROYALE!"; title.className = "win"; text.textContent = "You survived the storm and defeated the AI squad."; }
-            else { title.textContent = "ELIMINATED"; title.className = "lose"; text.textContent = "The storm or an opponent overwhelmed your shield system."; }
-        }
-        function resetGame() {
-            document.getElementById('screenOverlay').style.display = 'none'; hp = 100; stormRadius = 60; player.position.set(0, 1, 0); targetX = 0; targetZ = 0;
-            bots.forEach(bot => scene.remove(bot.mesh)); bots = []; const botGeo = new THREE.CylinderGeometry(0.6, 0.6, 2, 16), botMat = new THREE.MeshStandardMaterial({ color: 0xef4444 });
-            for (let i = 0; i < 4; i++) {
-                const angle = (i / 4) * Math.PI * 2, bMesh = new THREE.Mesh(botGeo, botMat); bMesh.position.set(Math.cos(angle) * 30, 1, Math.sin(angle) * 30); scene.add(bMesh);
-                bots.push({ mesh: bMesh, dx: (Math.random() - 0.5) * 0.2, dz: (Math.random() - 0.5) * 0.2, alive: true });
+        });
+
+        // Core game logic for checking the guess
+        guessBtn.addEventListener('click', () => {
+            const userGuess = parseInt(guessInput.value);
+
+            if (isNaN(userGuess) || userGuess < 1 || userGuess > 100) {
+                feedbackMsg.textContent = "Please enter a valid number between 1 and 100.";
+                feedbackMsg.style.color = "#d9534f";
+                return;
             }
-            gameActive = true; animate();
-        }
-        window.onload = init;
+
+            attempts++;
+
+            if (userGuess === targetNumber) {
+                feedbackMsg.textContent = `Correct! You found it in ${attempts} attempts!`;
+                feedbackMsg.style.color = "#5cb85c";
+            } else if (userGuess < targetNumber) {
+                feedbackMsg.textContent = "Too low! Try a higher number.";
+                feedbackMsg.style.color = "#f0ad4e";
+            } else {
+                feedbackMsg.textContent = "Too high! Try a lower number.";
+                feedbackMsg.style.color = "#f0ad4e";
+            }
+        });
+
+        // Allow pressing 'Enter' in the input box to submit a guess
+        guessInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                guessBtn.click();
+            }
+        });
     </script>
+
 </body>
 </html>
