@@ -1,185 +1,266 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CommsCord - Firewall Proof Chat</title>
-    <!-- Standard secure corporate HTTPS link database bypasses Wi-Fi port blocks -->
-    <script src="https://jsdelivr.net"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
-        body { background-color: #313338; color: #dbdee1; height: 100vh; display: flex; overflow: hidden; }
-        #server-sidebar { background-color: #1e1f22; width: 72px; display: flex; flex-direction: column; align-items: center; padding-top: 12px; gap: 8px; }
-        .server-icon { background-color: #35363c; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #dbdee1; cursor: pointer; font-size: 18px; }
-        #channels-sidebar { background-color: #2b2d31; width: 240px; display: flex; flex-direction: column; }
-        .server-header { height: 48px; padding: 0 16px; display: flex; align-items: center; font-weight: bold; border-bottom: 1px solid #1f2023; color: #fff; font-size: 15px; }
-        .channels-list { flex: 1; padding: 8px; display: flex; flex-direction: column; gap: 2px; }
-        .channel-item { padding: 6px 8px; border-radius: 4px; display: flex; align-items: center; gap: 6px; cursor: pointer; color: #949ba4; font-size: 15px; font-weight: 500; }
-        .channel-item:hover { background-color: #35373c; color: #deecf2; }
-        .channel-item.active { background-color: #404249; color: #fff; }
-        .channel-hash { color: #80848e; font-size: 18px; }
-        #main-chat-area { flex: 1; display: flex; flex-direction: column; background-color: #313338; position: relative; }
-        #chat-header { height: 48px; padding: 0 16px; display: flex; align-items: center; font-weight: bold; border-bottom: 1px solid #1f2023; color: #fff; gap: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
-        #chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 16px; user-select: text; -webkit-user-select: text; }
-        .message-row { display: flex; gap: 16px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background-color: #4e5058; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; flex-shrink: 0; font-size: 14px; }
-        .message-content { display: flex; flex-direction: column; gap: 4px; }
-        .msg-meta { display: flex; gap: 8px; align-items: baseline; }
-        .msg-user { font-weight: 600; color: #f2f3f5; font-size: 15px; }
-        .msg-time { font-size: 11px; color: #949ba4; }
-        .msg-body { font-size: 15px; color: #dbdee1; line-height: 1.375; white-space: pre-wrap; word-break: break-word; }
-        #input-box-wrapper { padding: 0 16px 24px 16px; background-color: #313338; }
-        #input-form { background-color: #383a40; border-radius: 8px; display: flex; padding: 10px 16px; gap: 12px; align-items: center; }
-        #message-input { flex: 1; background: transparent; border: none; outline: none; color: #dbdee1; font-size: 15px; user-select: text; -webkit-user-select: text; }
-        #send-action-btn { background-color: #5865f2; color: #fff; border: none; padding: 6px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 14px; }
-        #login-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: #1e1f22; z-index: 99999; display: flex; align-items: center; justify-content: center; }
-        .login-card { background-color: #313338; padding: 32px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); display: flex; flex-direction: column; gap: 20px; }
-        .login-card h2 { text-align: center; color: #fff; font-size: 24px; }
-        .input-group { display: flex; flex-direction: column; gap: 8px; }
-        .input-group label { font-size: 12px; font-weight: 700; color: #b5bac1; text-transform: uppercase; }
-        .login-field { background-color: #1e1f22; border: 1px solid #111214; padding: 10px; border-radius: 4px; color: #dbdee1; font-size: 15px; outline: none; }
-        .login-btn { background-color: #5865f2; color: white; border: none; padding: 12px; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Discord Clone</title>
+<script>
+(function(){var u=["https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js","https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js","https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"],i=0;
+function n(){if(window.Peer||i>=u.length)return;var s=document.createElement("script");s.crossOrigin="anonymous";s.src=u[i++];s.onerror=n;document.head.appendChild(s)}n()})();
+</script>
+<style>
+:root{--bg1:#1e1f22;--bg2:#2b2d31;--bg3:#313338;--bg4:#383a40;--tx:#dbdee1;--mut:#949ba4;--acc:#5865f2;--grn:#23a55a;--red:#f23f42;--yel:#f0b232}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+html,body{height:100%;margin:0;background:var(--bg1);color:var(--tx);font:15px/1.4 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulation}
+#app{display:flex;height:100dvh;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#servers{width:72px;background:var(--bg1);display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 0;flex:none}
+.srv{width:48px;height:48px;border-radius:50%;background:var(--bg3);display:grid;place-items:center;font-size:20px;transition:border-radius .15s,background .15s}
+.srv.on,.srv:active{border-radius:16px;background:var(--acc)}
+.sep{width:32px;height:2px;background:var(--bg3);border-radius:1px}
+#channels{width:240px;background:var(--bg2);display:flex;flex-direction:column;flex:none}
+.head{height:48px;padding:0 16px;display:flex;align-items:center;font-weight:700;border-bottom:1px solid var(--bg1);flex:none}
+.list{padding:8px;overflow-y:auto;flex:1}
+.cat{color:var(--mut);font-size:12px;font-weight:700;padding:14px 8px 4px}
+.ch{display:flex;align-items:center;gap:6px;width:100%;text-align:left;padding:10px 8px;border-radius:6px;background:none;color:var(--mut);font-size:16px;margin-bottom:2px}
+.ch.on{background:var(--bg4);color:#fff}
+.ch.video{background:var(--grn);color:#fff;font-weight:700;margin-top:10px;justify-content:center}
+#me{height:56px;background:#232428;display:flex;align-items:center;gap:10px;padding:0 10px;flex:none}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;color:#fff;flex:none;position:relative}
+.av.sm{width:32px;height:32px;font-size:13px}
+.dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border-radius:50%;background:var(--grn);border:3px solid #232428}
+#mename{font-weight:600;line-height:1.1}
+#status{font-size:12px;color:var(--mut)}
+#main{flex:1;display:flex;flex-direction:column;background:var(--bg3);min-width:0}
+#msgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 0}
+.m{display:flex;gap:14px;padding:6px 16px}
+.m .n{font-weight:600}.m .t{color:var(--mut);font-size:12px;margin-left:8px;font-weight:400}
+.m .b{white-space:pre-wrap;overflow-wrap:anywhere}
+.sys{color:var(--mut);font-size:13px;padding:4px 16px 4px 62px;font-style:italic}
+.empty{margin:auto;padding:24px;color:var(--mut);text-align:center}
+#bar{display:flex;gap:8px;margin:0 16px 16px;padding:6px;background:var(--bg4);border-radius:10px;flex:none}
+#inp{flex:1;background:none;border:0;outline:0;color:var(--tx);font-size:16px;padding:8px 10px;min-width:0}
+#send{background:var(--acc);color:#fff;border-radius:8px;padding:0 18px;font-weight:600}
+#members{width:240px;background:var(--bg2);flex:none;display:flex;flex-direction:column}
+.mem{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px}
+.mem .av .dot{border-color:var(--bg2)}
+@media(max-width:900px){#members{display:none}#channels{width:210px}}
+#login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
+.card{background:var(--bg3);border-radius:12px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px #0008}
+.card h1{margin:0 0 4px;font-size:24px;text-align:center}
+.card p{margin:0 0 18px;color:var(--mut);text-align:center}
+.card label{display:block;font-size:12px;font-weight:700;color:var(--mut);margin:12px 0 6px}
+.card input{width:100%;background:var(--bg1);border:0;border-radius:6px;padding:12px;color:var(--tx);font-size:16px;outline:0}
+.row{display:flex;gap:10px;margin-top:20px}
+.row button{flex:1;padding:13px;border-radius:6px;font-weight:700;color:#fff}
+#host{background:var(--acc)}#join{background:var(--grn)}
+#err{color:var(--red);min-height:20px;margin-top:12px;font-size:13px;text-align:center}
+</style>
 </head>
 <body>
-    <div id="login-overlay">
-        <div class="login-card">
-            <h2>Welcome Back!</h2>
-            <div class="input-group">
-                <label>Callsign Username Handle</label>
-                <input type="text" id="user-handle" value="Commander" class="login-field">
-            </div>
-            <div class="input-group">
-                <label>Private Server Password Key</label>
-                <input type="text" id="server-room-key" placeholder="Type a shared code word..." class="login-field">
-            </div>
-            <button class="login-btn" onclick="initializeCommsNetwork(event)" ontouchstart="initializeCommsNetwork(event)">Join Secure Server</button>
-        </div>
-    </div>
+<div id="login">
+  <div class="card">
+    <h1>Welcome back!</h1>
+    <p>Pick a handle and a shared room key. Both iPads must use the same key.</p>
+    <label for="user">USERNAME HANDLE</label>
+    <input id="user" maxlength="20" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="e.g. skyfox">
+    <label for="key">SHARED ROOM PASSWORD KEY</label>
+    <input id="key" type="password" maxlength="40" autocomplete="off" autocapitalize="off" autocorrect="off" placeholder="Same key on both devices">
+    <div class="row"><button id="host">👑 Host Room</button><button id="join">📡 Join Room</button></div>
+    <div id="err" role="alert"></div>
+  </div>
+</div>
 
-    <div id="server-sidebar">
-        <div class="server-icon" style="border-radius:30%; background-color:#5865f2; color:#fff;">⚛️</div>
+<div id="app">
+  <nav id="servers"><button class="srv on" aria-label="Home">💬</button><div class="sep"></div><button class="srv">🎮</button><button class="srv">♟️</button></nav>
+  <aside id="channels">
+    <div class="head">Signal Room</div>
+    <div class="list">
+      <div class="cat">TEXT CHANNELS</div>
+      <button class="ch on" data-c="general"><span>#</span> general</button>
+      <button class="ch" data-c="gaming"><span>#</span> gaming</button>
+      <button class="ch" data-c="strategy"><span>#</span> strategy</button>
+      <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
+    <div id="me"><div class="av" id="meav">?<span class="dot"></span></div><div><div id="mename">—</div><div id="status">Offline</div></div></div>
+  </aside>
+  <main id="main">
+    <div class="head" id="title"># general</div>
+    <div id="msgs"></div>
+    <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
+  </main>
+  <aside id="members"><div class="head">Online Signals</div><div class="list" id="mlist"></div></aside>
+</div>
 
-    <div id="channels-sidebar">
-        <div class="server-header" id="server-name-label">Frontier Hub</div>
-        <div class="channels-list">
-            <div class="channel-item active" id="chan-general" onclick="switchActiveChannel('general')"><span class="channel-hash">#</span>general</div>
-            <div class="channel-item" style="color: #23a55a; font-weight: bold;" onclick="startLiveWebcamCall()"><span class="channel-hash">🎥</span> Join Video Call</div>
-        </div>
-    </div>
+<script>
+(function(){
+"use strict";
+var $=function(i){return document.getElementById(i)};
+window.addEventListener("error",function(e){
+  var el=$("err");if(!el)return;
+  el.textContent="Script error: "+(e.message||"unknown")+(e.filename?" ("+e.filename.split("/").pop()+":"+e.lineno+")":"");
+});
+var S={name:"",key:"",code:"",isHost:false,peer:null,conns:[],hostConn:null,channel:"general",
+  msgs:{general:[],gaming:[],strategy:[]},roster:[]};
 
-    <div id="main-chat-area">
-        <div id="chat-header">
-            <span class="channel-hash" style="font-size:24px;">#</span>
-            <span id="active-header-title">general</span>
-        </div>
-        <div id="chat-messages"></div>
-        <div id="input-box-wrapper">
-            <div id="input-form">
-                <input type="text" id="message-input" placeholder="Message #general..." onkeypress="interceptInputKey(event)">
-                <button id="send-action-btn" onclick="broadcastChannelPayload(event)" ontouchstart="broadcastChannelPayload(event)">Send</button>
-            </div>
-        </div>
-    </div>
+/* Touch + click handler. preventDefault on touchstart stops the iPad keyboard
+   from losing focus; the click fallback is skipped right after a touch. */
+function tap(el,fn){
+  var last=0;
+  el.addEventListener("touchstart",function(e){e.preventDefault();last=Date.now();fn(e)},{passive:false});
+  el.addEventListener("mousedown",function(e){e.preventDefault()});
+  el.addEventListener("click",function(e){e.preventDefault();if(Date.now()-last>600)fn(e)});
+}
+
+/* Scramble the room key into a valid, non-reversible PeerJS ID */
+function fnv(s,seed){var h=seed>>>0;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)>>>0}return h.toString(16).padStart(8,"0")}
+function roomId(k){return "dcclone-"+fnv(k,2166136261)+fnv(k+"#salt",374761393)+fnv(k.split("").reverse().join(""),97)}
+function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+
+var colors=["#5865f2","#eb459e","#f0b232","#23a55a","#e67e22","#1abc9c","#9b59b6"];
+function colorOf(n){var h=0;for(var i=0;i<n.length;i++)h=(h*31+n.charCodeAt(i))>>>0;return colors[h%colors.length]}
+function avatar(n,cls){var d=document.createElement("div");d.className="av "+(cls||"sm");d.style.background=colorOf(n);d.textContent=(n[0]||"?").toUpperCase();var dot=document.createElement("span");dot.className="dot";d.appendChild(dot);return d}
+function clean(s,max){return String(s==null?"":s).slice(0,max)}
+
+/* ---------- Rendering (textContent only: no raw HTML ever) ---------- */
+function render(){
+  var box=$("msgs");box.textContent="";
+  var list=S.msgs[S.channel]||[];
+  if(!list.length){var e=document.createElement("div");e.className="empty";e.textContent="This is the start of #"+S.channel+". Say hello!";box.appendChild(e)}
+  list.forEach(function(m){
+    if(m.sys){var s=document.createElement("div");s.className="sys";s.textContent=m.text;box.appendChild(s);return}
+    var row=document.createElement("div");row.className="m";
+    var av=avatar(m.user,"");av.style.width=av.style.height="40px";row.appendChild(av);
+    var c=document.createElement("div");
+    var h=document.createElement("div");
+    var n=document.createElement("span");n.className="n";n.style.color=colorOf(m.user);n.textContent=m.user;
+    var t=document.createElement("span");t.className="t";t.textContent=new Date(m.ts).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+    h.appendChild(n);h.appendChild(t);
+    var b=document.createElement("div");b.className="b";b.textContent=m.text;
+    c.appendChild(h);c.appendChild(b);row.appendChild(c);box.appendChild(row);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+function renderRoster(){
+  var l=$("mlist");l.textContent="";
+  S.roster.forEach(function(n){var r=document.createElement("div");r.className="mem";r.appendChild(avatar(n));var s=document.createElement("span");s.textContent=n+(n===S.name?" (you)":"");r.appendChild(s);l.appendChild(r)});
+}
+function addMsg(ch,m){if(!S.msgs[ch])return;S.msgs[ch].push(m);if(ch===S.channel)render()}
+function sysAll(text){["general","gaming","strategy"].forEach(function(c){addMsg(c,{sys:1,text:text})})}
+function setStatus(t){$("status").textContent=t}
+
+/* ---------- Networking ---------- */
+function broadcast(data,except){S.conns.forEach(function(c){if(c!==except&&c.open)c.send(data)})}
+function sendRoster(){var d={t:"roster",list:S.roster};broadcast(d);renderRoster()}
+
+function onData(conn,d){
+  if(!d||typeof d!=="object")return;
+  if(d.t==="hello"&&S.isHost){
+    conn.peerName=clean(d.name,20)||"guest";
+    if(S.roster.indexOf(conn.peerName)<0)S.roster.push(conn.peerName);
+    sysAll(conn.peerName+" joined the room");
+    broadcast({t:"sys",text:conn.peerName+" joined the room"},conn);
+    sendRoster();
+  }else if(d.t==="msg"){
+    var ch=S.msgs[d.ch]?d.ch:"general";
+    var m={user:clean(d.user,20),text:clean(d.text,2000),ts:Number(d.ts)||Date.now()};
+    addMsg(ch,m);
+    if(S.isHost)broadcast({t:"msg",ch:ch,user:m.user,text:m.text,ts:m.ts},conn);
+  }else if(d.t==="roster"&&!S.isHost){
+    S.roster=(d.list||[]).slice(0,50).map(function(n){return clean(n,20)});renderRoster();
+  }else if(d.t==="sys"&&!S.isHost){sysAll(clean(d.text,100))}
+}
+function wire(conn){
+  conn.on("data",function(d){onData(conn,d)});
+  conn.on("close",function(){
+    S.conns=S.conns.filter(function(c){return c!==conn});
+    if(S.isHost&&conn.peerName){
+      S.roster=S.roster.filter(function(n){return n!==conn.peerName});
+      sysAll(conn.peerName+" left the room");sendRoster();
+    }else if(!S.isHost){setStatus("Host disconnected");sysAll("Connection to host lost.")}
+  });
+}
+function fail(msg){$("err").textContent=msg;setStatus("Offline");if(S.peer){try{S.peer.destroy()}catch(e){}S.peer=null}lock(false)}
+function lock(b){$("host").disabled=$("join").disabled=b}
+
+function start(host){
+  var name=clean($("user").value.trim(),20),key=$("key").value;
+  if(!name){$("err").textContent="Enter a username handle.";return}
+  if(key.length<4){$("err").textContent="Room key must be at least 4 characters.";return}
+  if(typeof Peer==="undefined"){$("err").textContent="PeerJS failed to load. Check your connection.";return}
+  $("err").textContent="";lock(true);
+  S.name=name;S.key=key;S.isHost=host;S.code=roomId(key);S.roster=[name];
+  setStatus(host?"Opening room…":"Connecting…");
+  /* secure:true + port 443 = signaling over wss, which firewalls allow */
+  var opts={host:"0.peerjs.com",path:"/",secure:true,port:443,debug:0,config:{iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:global.stun.twilio.com:3478"}]}};
+  if(!window.RTCPeerConnection){fail("This browser or frame blocks WebRTC. Open the file directly in Safari or Chrome, not inside a preview.");return}
+  var peer;
+  try{peer=host?new Peer(S.code,opts):new Peer(opts)}catch(err){
+    var framed=false;try{framed=window.top!==window}catch(x){framed=true}
+    fail("PeerJS error: "+(err&&err.message||err)+" [protocol="+location.protocol+", secureContext="+window.isSecureContext+", inFrame="+framed+"]");return}
+  S.peer=peer;
+  peer.on("error",function(e){
+    var t=e&&e.type;
+    if(t==="unavailable-id")fail("That room key is already hosted. Join it, or pick another key.");
+    else if(t==="peer-unavailable")fail("No host found for that key. Make sure the host opened the room first.");
+    else if(t==="network"||t==="server-error"||t==="socket-error")fail("Can't reach the signaling server. Check your Wi-Fi.");
+    else fail("Connection error: "+(t||"unknown"));
+  });
+  peer.on("open",function(){
+    if(host){
+      peer.on("connection",function(c){S.conns.push(c);wire(c);c.on("open",function(){c.send({t:"roster",list:S.roster})})});
+      enter("Hosting room");
+    }else{
+      var c=peer.connect(S.code,{reliable:true});
+      var to=setTimeout(function(){if(!c.open)fail("Timed out reaching the host. Check the room key.")},15000);
+      c.on("open",function(){clearTimeout(to);S.hostConn=c;S.conns=[c];wire(c);c.send({t:"hello",name:name});enter("Connected to host")});
+    }
+  });
+}
+function enter(label){
+  $("login").style.display="none";setStatus(label);
+  $("mename").textContent=S.name;
+  var a=$("meav");a.style.background=colorOf(S.name);a.firstChild.nodeValue=S.name[0].toUpperCase();
+  renderRoster();
+  sysAll(S.isHost?"Room opened. Share your room key with the other device.":"You joined the room.");
+}
+
+/* ---------- Sending ---------- */
+function send(){
+  var i=$("inp"),text=i.value.trim();
+  if(!text||!S.peer)return;
+  var m={t:"msg",ch:S.channel,user:S.name,text:text.slice(0,2000),ts:Date.now()};
+  addMsg(S.channel,m);
+  if(S.isHost)broadcast(m);else if(S.hostConn&&S.hostConn.open)S.hostConn.send(m);
+  i.value="";i.focus(); /* keep the iPad keyboard up */
+}
+
+/* ---------- Wiring ---------- */
+tap($("host"),function(){start(true)});
+tap($("join"),function(){start(false)});
+tap($("send"),send);
+$("inp").addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();send()}});
+["user","key"].forEach(function(id){$(id).addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();id==="user"?$("key").focus():start(false)}})});
+
+document.querySelectorAll(".ch[data-c]").forEach(function(b){
+  tap(b,function(){
+    S.channel=b.dataset.c;
+    document.querySelectorAll(".ch[data-c]").forEach(function(x){x.classList.toggle("on",x===b)});
+    $("title").textContent="# "+S.channel;$("inp").placeholder="Message #"+S.channel;render();
+  });
+});
+document.querySelectorAll(".srv").forEach(function(b){tap(b,function(){})});
+
+tap($("video"),function(){
+  var code=S.code||roomId($("key").value||"lobby");
+  /* base64 of the scrambled code (never the raw password), cleaned for URLs */
+  var slug=b64(code).replace(/=/g,"").replace(/[^A-Za-z0-9]/g,"").substring(0,10);
+  window.open("https://meet.jit.si/DiscordClone"+slug,"_blank");
+});
+
+render();
+})();
+</script>
 </body>
-<script>
-    let sPaneNode = null;
-    let sChannelLink = null;
-    let myHandle = "Commander";
-    let roomCode = "global";
-    let activeChannel = "general";
-    
-    // Dedicated corporate pipeline keys utilizing standard secure port 443
-    const S_URL = "https://supabase.co";
-    const S_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6aWN4b3d4c2hvdnFxb2ZzaHVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDQwOTYwMDAsImV4cCI6MjA1OTY1MjAwMH0.1vT3X9K07Z8Y-X_9w123456789abcdefghijklmnopqrstuvwxyz";
-
-    function initializeCommsNetwork(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        myHandle = document.getElementById('user-handle').value.trim() || "Commander";
-        roomCode = document.getElementById('server-room-key').value.trim() || "global";
-        
-        const cleanRoom = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-        
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('server-name-label').innerText = roomCode.toUpperCase() + " Server";
-
-        // Initialize standard HTTPS connection database loop
-        sPaneNode = supabase.createClient(S_URL, S_KEY);
-
-        // Link a secure WebSockets transmission channel over standard web traffic rules
-        sChannelLink = sPaneNode.channel(`room_${cleanRoom}`);
-
-        sChannelLink
-            .on('broadcast', { event: 'msg' }, (response) => {
-                const packet = response.payload;
-                appendMessageMarkup(packet);
-            })
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    printSystemNotice("Secure network link established! Port 443 Active. ✅");
-                }
-            });
-    }
-</script>
-<script>
-    function broadcastChannelPayload(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        const field = document.getElementById('message-input');
-        const rawText = field.value.trim();
-        if (!rawText || !sChannelLink) return;
-
-        const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const messagePacket = { user: myHandle, bodyText: rawText, timestamp: timeString };
-
-        // Broadcast text packet straight through normal HTTPS web routing filters
-        sChannelLink.send({
-            type: 'broadcast',
-            event: 'msg',
-            payload: messagePacket
-        });
-
-        // Immediately write your own message locally onto your screen box
-        appendMessageMarkup(messagePacket);
-
-        field.value = '';
-        setTimeout(() => { field.focus(); }, 40);
-    }
-
-    function appendMessageMarkup(msgData) {
-        const container = document.getElementById('chat-messages');
-        const row = document.createElement('div');
-        row.className = 'message-row';
-        const userFirstLetter = msgData.user.charAt(0).toUpperCase();
-        
-        row.innerHTML = `
-            <div class="avatar">${userFirstLetter}</div>
-            <div class="message-content">
-                <div class="msg-meta">
-                    <span class="msg-user">${msgData.user}</span>
-                    <span class="msg-time">${msgData.timestamp}</span>
-                    </div>
-                <div class="msg-body"></div>
-            </div>
-        `;
-        row.querySelector('.msg-body').appendChild(document.createTextNode(msgData.bodyText));
-        container.appendChild(row);
-        container.scrollTop = container.scrollHeight;
-    }
-
-    function printSystemNotice(txtText) {
-        const msg = { user: "🔧 SYSTEM", bodyText: txtText, timestamp: "--:--" };
-        appendMessageMarkup(msg);
-    }
-
-    function switchActiveChannel(cName) { return; }
-
-    function startLiveWebcamCall() {
-        const secureRoomId = btoa(roomCode).replace(/=/g, '').substring(0, 12);
-        const externalVideoMeetingUrl = `https://jit.si{secureRoomId}`;
-        window.open(externalVideoMeetingUrl, '_blank', 'width=800,height=600');
-    }
-
-    function interceptInputKey(e) { if (e.key === 'Enter') broadcastChannelPayload(e); }
-</script>
 </html>
