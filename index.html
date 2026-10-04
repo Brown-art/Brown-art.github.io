@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Atomic Grand Sandbox: Empire Conquest Grid</title>
+    <title>Atomic Grand Sandbox: Shield &amp; Private Networks 🛡️</title>
+    <!-- Web routing arrays for live chat and photo downloads -->
     <script src="https://cloudflare.com"></script>
     <script src="https://cloudflare.com"></script>
     <style>
@@ -31,23 +32,19 @@
         #status-bar { text-align: center; font-size: 12px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 6px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); font-weight: bold; }
         .map-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px; min-height: 300px; }
         .map-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; max-height: 420px; background: #08080c; padding: 8px; border-radius: 10px; border: 2px solid #1a1a26; overflow-y: auto; }
-        
         .cell { background: #13131c; border: 1px solid #222235; border-radius: 6px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: relative; transition: all 0.2s; }
         .lvl-2 { border-color: #3b82f6 !important; background: #171d30 !important; }
         .lvl-3-farm { border-color: #22c55e !important; background: #12291b !important; box-shadow: inset 0 0 10px rgba(34,197,94,0.3); }
         .lvl-3-house { border-color: #a855f7 !important; background: #231533 !important; box-shadow: inset 0 0 10px rgba(168,85,247,0.3); }
         .lvl-3-lab { border-color: #eab308 !important; background: #2b2512 !important; box-shadow: inset 0 0 10px rgba(234,179,8,0.3); }
-        
         .cell-info { font-size: 8px; color: #cbd5e1; margin-top: 2px; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 3px; font-weight: bold; text-align: center; }
         .reactor-danger { background: rgba(239,68,68,0.2) !important; border-color: #ef4444 !important; }
         #chat-header { font-size: 14px; font-weight: bold; padding-bottom: 8px; border-bottom: 1px solid #222235; color: #ef4444; display: flex; justify-content: space-between; }
         #network-status { font-size: 9px; padding: 2px 5px; border-radius: 8px; background: #dc2626; color: white; }
         #chat-messages { flex: 1; overflow-y: auto; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
-        
         .msg-bubble { background: #1a1a26; padding: 6px 10px; border-radius: 6px; font-size: 12px; transition: all 0.3s; }
         .strike-alert { border: 2px solid #ef4444 !important; background: #2d1212 !important; animation: blinker 0.8s linear infinite; }
         @keyframes blinker { 50% { border-color: transparent; } }
-        
         .msg-user { font-weight: bold; color: #ef4444; font-size: 10px; }
         #chat-input-area { display: flex; gap: 4px; }
         #chat-input { flex: 1; background: #09090d; border: 1px solid #33334c; border-radius: 6px; padding: 8px; color: white; font-size: 12px; }
@@ -73,8 +70,8 @@
         <button class="btn" style="background:#eab308; color:#000; padding:15px 30px; font-size:16px; margin-top:20px; box-shadow:0 4px 15px rgba(234,179,8,0.4);" onclick="saveCertificateToGallery()">📥 Save Certificate to Photos</button>
     </div>
     <header>
-        <h1>☢️ Atomic Grand Sandbox: Empire Conquest Grid 💣</h1>
-        <p>Command Suite: Buy land, expand layout parameters, level architecture, and launch tactical communications network strikes!</p>
+        <h1>☢️ Atomic Grand Sandbox: Shield &amp; Private Networks 🛡️</h1>
+        <p>Command Suite: Buy land, build defense fields, level architecture, and connect to isolated chat frequencies!</p>
     </header>
     <div id="main-split">
         <div id="game-side">
@@ -90,26 +87,28 @@
                 <button class="btn" id="tool-house" onclick="selectTool('house')">🏠 Cabin <span>$90</span></button>
                 <button class="btn" id="tool-lab" onclick="selectTool('lab')">🧪 Lab <span>$150</span></button>
                 <button class="btn" id="tool-cooler" onclick="selectTool('cooler')">💧 Cooler <span>$200</span></button>
+                <button class="btn" id="tool-shield" onclick="selectTool('shield')">🛡️ Shield Gen <span>$300</span></button>
                 <button class="btn" id="tool-reactor" onclick="selectTool('reactor')">🔒 Reactor <span>Req: 150 XP</span></button>
                 <button class="btn" id="tool-solar" onclick="selectTool('solar')">🔒 Solar/Nuke <span>Req: 350 XP</span></button>
                 <button class="btn" style="background:#a855f7; border-color:#c084fc;" onclick="purchaseNewTerritoryPlots()">🛒 Buy Land <span>$2000</span></button>
                 <button class="btn" style="background:#ef4444; border-color:#b91c1c;" onclick="launchGlobalRadioStrike()">⚔️ Strike Live Rivals <span>$800</span></button>
             </div>
-            <div id="status-bar">Initialize colony array systems. Upgrade structures by tapping them when tools are unselected.</div>
+            <div id="status-bar">Deploy Shield Generators (🛡️) next to houses or reactors to block enemy player payloads!</div>
             <div class="map-wrapper"><div class="map-grid" id="sandbox-map"></div></div>
         </div>
         <div id="chat-side">
             <div id="username-prompt">
-                <h3>Enter Battle Comms</h3>
-                <input type="text" id="username-input" value="Commander" style="background:#09090d; border:1px solid #33334c; padding:8px; color:white; border-radius:6px; text-align:center; width:80%;">
-                <button class="btn" onclick="connectToChatNetwork()" ontouchstart="connectToChatNetwork()">Connect</button>
+                <h3>Enter Secure Battle Comms</h3>
+                <input type="text" id="username-input" value="Commander" placeholder="Callsign Name..." style="background:#09090d; border:1px solid #33334c; padding:8px; color:white; border-radius:6px; text-align:center; width:80%; margin-bottom: 5px;">
+                <input type="text" id="room-input" placeholder="Secret Room Key..." style="background:#09090d; border:1px solid #33334c; padding:8px; color:#a855f7; border-radius:6px; text-align:center; width:80%; font-weight:bold; margin-bottom: 10px;">
+                <button class="btn" onclick="connectToChatNetwork(event)" ontouchstart="connectToChatNetwork(event)">Connect Frequency</button>
             </div>
             <div id="active-chat-box" style="display: none; flex: 1; flex-direction: column; height: 100%;">
-                <div id="chat-header"><span>📡 Radio Freq</span><span id="network-status">CONNECTED</span></div>
+                <div id="chat-header"><span id="room-display">📡 Radio Freq</span><span id="network-status">CONNECTED</span></div>
                 <div id="chat-messages"></div>
                 <div id="chat-input-area">
                     <input type="text" id="chat-input" placeholder="Broadcast alert..." onkeypress="handleChatKey(event)">
-                    <button id="send-btn" onclick="sendBroadcastMessage()" ontouchstart="sendBroadcastMessage()">Send</button>
+                    <button id="send-btn" onclick="sendBroadcastMessage(event)" ontouchstart="sendBroadcastMessage(event)">Send</button>
                 </div>
             </div>
         </div>
@@ -117,8 +116,8 @@
     <script>
         const columns = 7; let currentTotalPlots = 21;
         let state = { pop: 12, cash: 250, science: 0, power: 0, activeTool: null, tiles: Array(21).fill(null).map(() => ({ type: 'empty', temp: 0, level: 1 })) };
-        const costs = { farm: 50, house: 90, lab: 150, cooler: 200, reactor: 450, solar: 600, nuke: 600 };
-        const visualIcons = { empty: '🌱', farm: '🌾', house: '🏠', lab: '🧪', cooler: '💧', reactor: '⚛️', solar: '☀️', nuke: '☢️', ash: '⚫' };
+        const costs = { farm: 50, house: 90, lab: 150, cooler: 200, reactor: 450, solar: 600, nuke: 600, shield: 300 };
+        const visualIcons = { empty: '🌱', farm: '🌾', house: '🏠', lab: '🧪', cooler: '💧', reactor: '⚛️', solar: '☀️', nuke: '☢️', shield: '🛡️', ash: '⚫' };
         let mqttClient = null, myCallsign = "Commander", globalTopicChannel = "sandbox/global/chat/room/v2";
 
         function drawMapGrid() {
@@ -136,7 +135,7 @@
                     const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = `${coolersCount > 0 ? '❄️x' + coolersCount : '⚠️'} ${Math.floor(tile.temp)}°C`; cell.appendChild(lbl);
                 } else if (tile.type === 'nuke') {
                     const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.style.color = '#ef4444'; lbl.innerText = 'TAP TO FIRE'; cell.appendChild(lbl);
-                } else if (tile.type !== 'empty' && tile.type !== 'ash' && tile.type !== 'cooler' && tile.type !== 'solar') {
+                } else if (tile.type !== 'empty' && tile.type !== 'ash' && tile.type !== 'cooler' && tile.type !== 'solar' && tile.type !== 'shield') {
                     const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = `LVL ${tile.level} ${tile.type.toUpperCase()}`; cell.appendChild(lbl);
                 }
                 cell.onclick = () => processInteractions(idx); container.appendChild(cell);
@@ -180,7 +179,7 @@
             
             if (!state.activeTool) {
                 if (['farm', 'house', 'lab'].includes(tile.type) && tile.level < 3) {
-                    const cost = Math.floor(costs[tile.type] * 2.2 * tile.level); // Slower upgrade pace
+                    const cost = Math.floor(costs[tile.type] * 2.2 * tile.level);
                     if (state.cash >= cost) { state.cash -= cost; tile.level++; drawMapGrid(); }
                 }
                 return;
@@ -238,17 +237,15 @@
                     if (tile.temp >= 100) state.tiles[index] = { type: 'ash', temp: 0, level: 1 }; 
                 }
             });
-            state.power = p; state.science += l * 1; // Rebalanced slow tech pace
-            if (state.pop < h && f > 0) state.pop += Math.min(4, f);
-            state.cash += Math.floor((state.pop * 1.5) + (f * 15) + (state.power * 0.10)); // Slower rebalanced cash rise
+            state.power = p; state.science += l * 1;
+            state.cash += Math.floor((state.pop * 1.5) + (f * 15) + (state.power * 0.10));
             drawMapGrid();
         }
 
         function checkVictoryConditions() {
             let builtItems = state.tiles.filter(t => t.type !== 'empty' && t.type !== 'ash');
-            // Victory gating pushed to 56 total land slots with 45 full buildings required
             if (currentTotalPlots >= 56 && builtItems.length >= 45) {
-                let allMaxed = builtItems.every(t => ['cooler', 'solar', 'reactor', 'nuke'].includes(t.type) || t.level === 3);
+                let allMaxed = builtItems.every(t => ['cooler', 'solar', 'reactor', 'nuke', 'shield'].includes(t.type) || t.level === 3);
                 let hasPower = state.power >= 2500;
                 if (allMaxed && hasPower) {
                     document.getElementById('winner-name').innerText = myCallsign.toUpperCase();
@@ -268,12 +265,19 @@
             });
         }
 
-        function connectToChatNetwork() {
+        function connectToChatNetwork(e) {
+            if (e) { e.preventDefault(); e.stopPropagation(); }
             myCallsign = document.getElementById('username-input').value.trim() || "Commander";
-            document.getElementById('username-prompt').style.display = 'none'; document.getElementById('active-chat-box').style.display = 'flex';
-            mqttClient = mqtt.connect("wss://://hivemq.com");
+            let secretRoomKey = document.getElementById('room-input').value.trim() || "global";
+            globalTopicChannel = `sandbox/secure/room/${btoa(secretRoomKey).replace(/=/g, '')}`;
+            document.getElementById('username-prompt').style.display = 'none'; 
+            document.getElementById('active-chat-box').style.display = 'flex';
+            document.getElementById('room-display').innerText = `📡 Room: ${secretRoomKey.toUpperCase()}`;
+            let uniqueId = 'sandbox_user_' + Math.floor(Math.random() * 1000000);
+            mqttClient = mqtt.connect("wss://://hivemq.com", { clientId: uniqueId });
             mqttClient.on('connect', () => { 
-                document.getElementById('network-status').innerText = "ONLINE"; document.getElementById('network-status').style.backgroundColor = "#22c55e";
+                document.getElementById('network-status').innerText = "ONLINE"; 
+                document.getElementById('network-status').style.backgroundColor = "#22c55e";
                 mqttClient.subscribe(globalTopicChannel); 
             });
             mqttClient.on('message', (topic, payload) => {
@@ -293,11 +297,29 @@
             drawMapGrid();
         }
 
+        function hasShieldProtection(idx) {
+            const r = Math.floor(idx / columns), c = idx % columns, totalRows = currentTotalPlots / columns;
+            const offsets = [ { r: r - 1, c: c }, { r: r + 1, c: c }, { r: r, c: c - 1 }, { r: r, c: c + 1 } ];
+            return offsets.some(pos => {
+                if (pos.r >= 0 && pos.r < totalRows && pos.c >= 0 && pos.c < columns) {
+                    return state.tiles[pos.r * columns + pos.c].type === 'shield';
+                }
+                return false;
+            });
+        }
+
         function triggerIncomingNetworkWipe() {
             let activePlots = [];
-            state.tiles.forEach((t, i) => { if(t.type !== 'empty' && t.type !== 'ash') activePlots.push(i); });
+            state.tiles.forEach((t, i) => { if(t.type !== 'empty' && t.type !== 'ash' && t.type !== 'shield') activePlots.push(i); });
             if (activePlots.length > 0) {
                 let randomTarget = activePlots[Math.floor(Math.random() * activePlots.length)];
+                if (hasShieldProtection(randomTarget)) {
+                    document.getElementById('status-bar').innerText = "🛡️ DEFENSE INTERCEPT: A shield blocked an incoming multiplayer strike!";
+                    if (mqttClient) {
+                        mqttClient.publish(globalTopicChannel, JSON.stringify({ type: 'chat', sender: "🛡️ SHIELD GRID", textMessage: `📡 DEFENSE ALERT: ${myCallsign.toUpperCase()}'S SHIELD ARRAY COMPLETED INTERCEPT!` }));
+                    }
+                    return;
+                }
                 state.tiles[randomTarget] = { type: 'ash', temp: 0, level: 1 };
                 document.getElementById('status-bar').innerText = "💥 DIRECT HIT: An incoming multiplayer attack destroyed one of your buildings!";
                 drawMapGrid();
@@ -305,14 +327,16 @@
         }
 
         function sendBroadcastMessage(e) {
-            if (e) e.preventDefault(); const input = document.getElementById('chat-input'); if (!input.value.trim() || !mqttClient) return;
-            mqttClient.publish(globalTopicChannel, JSON.stringify({ type: 'chat', sender: myCallsign, textMessage: input.value.trim() }));
-            input.value = ''; input.focus();
+            if (e) { e.preventDefault(); e.stopPropagation(); }
+            const input = document.getElementById('chat-input'); const msgText = input.value.trim();
+            if (!msgText || !mqttClient) return;
+            mqttClient.publish(globalTopicChannel, JSON.stringify({ type: 'chat', sender: myCallsign, textMessage: msgText }));
+            input.value = ''; setTimeout(() => { input.focus(); }, 50);
         }
 
         function displayIncomingMessage(sender, text) {
             const box = document.getElementById('chat-messages'); const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
-            if (sender.includes("🚨")) { bubble.classList.add('strike-alert'); }
+            if (sender.includes("🚨") || sender.includes("🛡️")) { bubble.classList.add('strike-alert'); }
             bubble.innerHTML = `<div class="msg-user">${sender}</div>${text}`;
             box.appendChild(bubble); box.scrollTop = box.scrollHeight;
         }
