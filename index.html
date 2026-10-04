@@ -9,6 +9,8 @@
 (function(){var u=["https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js","https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js","https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"],i=0;
 function n(){if(window.Peer||i>=u.length)return;var s=document.createElement("script");s.crossOrigin="anonymous";s.src=u[i++];s.onerror=n;document.head.appendChild(s)}n()})();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://js.puter.com/v2/"></script>
 <style>
 :root{--bg1:#1e1f22;--bg2:#2b2d31;--bg3:#313338;--bg4:#383a40;--tx:#dbdee1;--mut:#949ba4;--acc:#5865f2;--grn:#23a55a;--red:#f23f42;--yel:#f0b232}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
@@ -45,6 +47,15 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 #members{width:240px;background:var(--bg2);flex:none;display:flex;flex-direction:column}
 .mem{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px}
 .mem .av .dot{border-color:var(--bg2)}
+#chessWrap{display:none;gap:16px;padding:12px 16px;flex:none;align-items:center;border-bottom:1px solid var(--bg1)}
+#board{display:grid;grid-template-columns:repeat(8,1fr);width:min(46vh,360px);aspect-ratio:1;border-radius:6px;overflow:hidden;flex:none;touch-action:manipulation}
+.sq{display:grid;place-items:center;position:relative;font-size:min(4.4vh,34px);line-height:1}
+.sq.l{background:#eeeed2}.sq.d{background:#769656}
+.sq.sel{box-shadow:inset 0 0 0 4px var(--yel)}.sq.last{box-shadow:inset 0 0 0 100px rgba(255,235,0,.3)}
+.sq.hint::after{content:"";position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,0,0,.28)}
+.pw{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 3px #000}.pb{color:#111}
+#cstatus{font-weight:600;margin-bottom:10px}
+#cnew{background:var(--acc);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600}
 @media(max-width:900px){#members{display:none}#channels{width:210px}}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
 .card{background:var(--bg3);border-radius:12px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px #0008}
@@ -81,12 +92,15 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
       <button class="ch on" data-c="general"><span>#</span> general</button>
       <button class="ch" data-c="gaming"><span>#</span> gaming</button>
       <button class="ch" data-c="strategy"><span>#</span> strategy</button>
+      <button class="ch" data-c="chess"><span>♟️</span> chess</button>
+      <button class="ch" data-c="ai"><span>🤖</span> ai-assistant</button>
       <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
     <div id="me"><div class="av" id="meav">?<span class="dot"></span></div><div><div id="mename">—</div><div id="status">Offline</div></div></div>
   </aside>
   <main id="main">
     <div class="head" id="title"># general</div>
+    <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
   </main>
@@ -102,7 +116,7 @@ window.addEventListener("error",function(e){
   el.textContent="Script error: "+(e.message||"unknown")+(e.filename?" ("+e.filename.split("/").pop()+":"+e.lineno+")":"");
 });
 var S={name:"",key:"",code:"",isHost:false,peer:null,conns:[],hostConn:null,channel:"general",
-  msgs:{general:[],gaming:[],strategy:[]},roster:[]};
+  msgs:{general:[],gaming:[],strategy:[],chess:[],ai:[]},roster:[]};
 
 /* Touch + click handler. preventDefault on touchstart stops the iPad keyboard
    from losing focus; the click fallback is skipped right after a touch. */
@@ -156,6 +170,7 @@ function sendRoster(){var d={t:"roster",list:S.roster};broadcast(d);renderRoster
 
 function onData(conn,d){
   if(!d||typeof d!=="object")return;
+  if(d.t==="chess"){chessRecv(d);return}
   if(d.t==="hello"&&S.isHost){
     conn.peerName=clean(d.name,20)||"guest";
     if(S.roster.indexOf(conn.peerName)<0)S.roster.push(conn.peerName);
@@ -163,7 +178,7 @@ function onData(conn,d){
     broadcast({t:"sys",text:conn.peerName+" joined the room"},conn);
     sendRoster();
   }else if(d.t==="msg"){
-    var ch=S.msgs[d.ch]?d.ch:"general";
+    var ch=(S.msgs[d.ch]&&d.ch!=="ai")?d.ch:"general";
     var m={user:clean(d.user,20),text:clean(d.text,2000),ts:Number(d.ts)||Date.now()};
     addMsg(ch,m);
     if(S.isHost)broadcast({t:"msg",ch:ch,user:m.user,text:m.text,ts:m.ts},conn);
@@ -209,7 +224,7 @@ function start(host){
   });
   peer.on("open",function(){
     if(host){
-      peer.on("connection",function(c){S.conns.push(c);wire(c);c.on("open",function(){c.send({t:"roster",list:S.roster})})});
+      peer.on("connection",function(c){S.conns.push(c);wire(c);c.on("open",function(){c.send({t:"roster",list:S.roster});if(G)c.send({t:"chess",k:"sync",fen:G.fen(),last:lastMove})})});
       enter("Hosting room");
     }else{
       var c=peer.connect(S.code,{reliable:true});
@@ -230,10 +245,88 @@ function enter(label){
 function send(){
   var i=$("inp"),text=i.value.trim();
   if(!text||!S.peer)return;
+  if(S.channel==="ai"){i.value="";i.focus();askAI(text);return}
   var m={t:"msg",ch:S.channel,user:S.name,text:text.slice(0,2000),ts:Date.now()};
   addMsg(S.channel,m);
   if(S.isHost)broadcast(m);else if(S.hostConn&&S.hostConn.open)S.hostConn.send(m);
   i.value="";i.focus(); /* keep the iPad keyboard up */
+}
+
+/* ---------- Chess (two players: host = white, joiner = black) ---------- */
+var G=null,sel=null,legal=[],lastMove=null;
+var PG={p:"\u265F",n:"\u265E",b:"\u265D",r:"\u265C",q:"\u265B",k:"\u265A"};
+function mySide(){return S.isHost?"w":"b"}
+function chessStatus(){
+  var t=G.turn(),me=mySide(),x;
+  if(G.in_checkmate())x="Checkmate. "+(t===me?"You lose.":"You win!");
+  else if(G.in_draw()||G.in_stalemate())x="Draw.";
+  else x=(t===me?"Your move":"Opponent's move")+(G.in_check()?" (check)":"")+" \u2014 you are "+(me==="w"?"white":"black");
+  $("cstatus").textContent=x;
+}
+function drawBoard(){
+  if(!G)return;
+  var bd=$("board");bd.textContent="";
+  var flip=mySide()==="b",rows=G.board();
+  for(var r=0;r<8;r++)for(var f=0;f<8;f++){
+    var rr=flip?7-r:r,ff=flip?7-f:f,p=rows[rr][ff],name="abcdefgh"[ff]+(8-rr);
+    var d=document.createElement("div");d.className="sq "+((rr+ff)%2?"d":"l");
+    if(sel===name)d.classList.add("sel");
+    if(legal.indexOf(name)>=0)d.classList.add("hint");
+    if(lastMove&&(lastMove[0]===name||lastMove[1]===name))d.classList.add("last");
+    if(p){var sp=document.createElement("span");sp.className="p"+p.color;sp.textContent=PG[p.type];d.appendChild(sp)}
+    (function(n){tap(d,function(){onSq(n)})})(name);
+    bd.appendChild(d);
+  }
+  chessStatus();
+}
+function onSq(n){
+  if(!G||G.game_over()||G.turn()!==mySide())return;
+  if(sel&&legal.indexOf(n)>=0){doMove(sel,n,true);return}
+  var p=G.get(n);
+  if(p&&p.color===mySide()){sel=n;legal=G.moves({square:n,verbose:true}).map(function(m){return m.to})}
+  else{sel=null;legal=[]}
+  drawBoard();
+}
+function doMove(from,to,mine){
+  var m=G.move({from:from,to:to,promotion:"q"}); /* pawns auto-promote to queen */
+  if(!m)return false;
+  sel=null;legal=[];lastMove=[from,to];drawBoard();
+  if(mine)broadcast({t:"chess",k:"move",from:from,to:to});
+  return true;
+}
+function chessReset(){G=new Chess();sel=null;legal=[];lastMove=null;drawBoard()}
+function chessRecv(d){
+  if(!G)return;
+  if(d.k==="move"){if(G.turn()!==mySide())doMove(clean(d.from,2),clean(d.to,2),false)}
+  else if(d.k==="new"){chessReset()}
+  else if(d.k==="sync"&&!S.isHost){
+    G.load(clean(d.fen,100));
+    lastMove=Array.isArray(d.last)?[clean(d.last[0],2),clean(d.last[1],2)]:null;drawBoard();
+  }
+}
+function panel(ch){
+  $("chessWrap").style.display=ch==="chess"?"flex":"none";
+  if(ch!=="chess")return;
+  if(!G&&window.Chess)G=new Chess();
+  if(G)drawBoard();else $("cstatus").textContent="Chess engine failed to load.";
+}
+
+/* ---------- AI assistant (Puter.js, private to this device) ---------- */
+var aiHist=[{role:"system",content:"You are a friendly, concise assistant inside a Discord-style chat app."}];
+S.msgs.ai.push({user:"Assistant",text:"Hi! Ask me anything. Only you can see this channel. The first time, a Puter sign-in window opens (allow popups if asked).",ts:Date.now()});
+function askAI(text){
+  addMsg("ai",{user:S.name,text:text,ts:Date.now()});
+  aiHist.push({role:"user",content:text});
+  var th={user:"Assistant",text:"Thinking\u2026",ts:Date.now()};
+  if(!window.puter||!puter.ai){th.text="The AI library didn't load. Check your connection and reload.";addMsg("ai",th);return}
+  addMsg("ai",th);
+  puter.ai.chat([aiHist[0]].concat(aiHist.slice(1).slice(-18))).then(function(r){
+    var t=typeof r==="string"?r:(r&&r.message&&r.message.content)||"";
+    if(Array.isArray(t))t=t.map(function(x){return x.text||""}).join("");
+    th.text=String(t||"(no reply)");aiHist.push({role:"assistant",content:th.text});render();
+  }).catch(function(e){
+    th.text="AI error: "+((e&&e.message)||(e&&e.error&&e.error.message)||"sign-in may have been cancelled. Send your message again.");render();
+  });
 }
 
 /* ---------- Wiring ---------- */
@@ -247,7 +340,7 @@ document.querySelectorAll(".ch[data-c]").forEach(function(b){
   tap(b,function(){
     S.channel=b.dataset.c;
     document.querySelectorAll(".ch[data-c]").forEach(function(x){x.classList.toggle("on",x===b)});
-    $("title").textContent="# "+S.channel;$("inp").placeholder="Message #"+S.channel;render();
+    $("title").textContent=b.textContent.trim();$("inp").placeholder=S.channel==="ai"?"Ask the AI anything":"Message #"+S.channel;panel(S.channel);render();
   });
 });
 document.querySelectorAll(".srv").forEach(function(b){tap(b,function(){})});
@@ -259,6 +352,7 @@ tap($("video"),function(){
   window.open("https://meet.jit.si/DiscordClone"+slug,"_blank");
 });
 
+tap($("cnew"),function(){if(!window.Chess)return;chessReset();broadcast({t:"chess",k:"new"})});
 render();
 })();
 </script>
