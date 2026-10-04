@@ -38,7 +38,7 @@
         .input-group { display: flex; flex-direction: column; gap: 8px; }
         .input-group label { font-size: 12px; font-weight: 700; color: #b5bac1; text-transform: uppercase; }
         .login-field { background-color: #1e1f22; border: 1px solid #111214; padding: 10px; border-radius: 4px; color: #dbdee1; font-size: 15px; outline: none; }
-        .login-btn { background-color: #5865f2; color: white; border: none; padding: 12px; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .login-btn { color: white; border: none; padding: 12px; border-radius: 4px; font-size: 16px; font-weight: 600; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -50,10 +50,13 @@
                 <input type="text" id="user-handle" value="Commander" class="login-field">
             </div>
             <div class="input-group">
-                <label>Private Room Name</label>
-                <input type="text" id="server-room-key" placeholder="Type a unique room name..." class="login-field">
+                <label>Shared Room Password Key</label>
+                <input type="text" id="server-room-key" placeholder="Type a shared room word..." class="login-field">
             </div>
-            <button class="login-btn" onclick="initializeCommsNetwork(event)" ontouchstart="initializeCommsNetwork(event)">Connect Room</button>
+            <div style="display:flex; gap:10px;">
+                <button class="login-btn" style="flex:1; background:#4ade80;" onclick="initializeCommsNetwork(event, 'host')" ontouchstart="initializeCommsNetwork(event, 'host')">👑 Host Room</button>
+                <button class="login-btn" style="flex:1; background:#5865f2;" onclick="initializeCommsNetwork(event, 'join')" ontouchstart="initializeCommsNetwork(event, 'join')">📡 Join Room</button>
+            </div>
         </div>
     </div>
 
@@ -90,7 +93,6 @@
     let roomCode = "global";
     let activeChannel = "general";
     
-    // Fallback broker network array for seamless iPad peer routing
     const customConfig = {
         config: {
             iceServers: [
@@ -100,47 +102,45 @@
         }
     };
 
-    function initializeCommsNetwork(e) {
+    function initializeCommsNetwork(e, networkRole) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
         myHandle = document.getElementById('user-handle').value.trim() || "Commander";
         roomCode = document.getElementById('server-room-key').value.trim() || "global";
         
         const cleanRoom = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
-        const cleanName = myHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
         
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('server-name-label').innerText = roomCode.toUpperCase() + " Room";
 
-        // Generate a completely unique identifier string for this specific tab node
-        const targetId = `comms_room_${cleanRoom}_${cleanName}_${Math.floor(Math.random()*1000)}`;
-        
-        myPeerNode = new Peer(targetId, customConfig);
+        if (networkRole === 'host') {
+            const hostId = `comms_room_${cleanRoom}_host`;
+            myPeerNode = new Peer(hostId, customConfig);
 
-        myPeerNode.on('open', (id) => {
-            printSystemNotice("Searching network for partner signal... 🔍");
-            // Auto scan the room to locate and bridge into active sister nodes
-            scanGlobalRoomChannels(cleanRoom, targetId);
-        });
+            myPeerNode.on('open', (id) => {
+                printSystemNotice("Room opened! Tell your partner to tap 'Join Room' using code: " + roomCode);
+            });
 
-        myPeerNode.on('connection', (conn) => {
-            handleIncomingDataTunnels(conn);
-        });
-    }
+            myPeerNode.on('connection', (conn) => {
+                handleIncomingDataTunnels(conn);
+            });
 
-    function scanGlobalRoomChannels(roomTag, currentId) {
-        // Broadcast discovery ping packets directly onto the free public signaling relays
-        const searchUrl = `https://jit.si{roomTag}`;
-        
-        // PeerJS auto hooks listeners to open data pipes if a partner node is discovered
-        myPeerNode.listAllPeers((peersList) => {
-            if (!peersList) return;
-            peersList.forEach(peerId => {
-                if (peerId.startsWith(`comms_room_${roomTag}_`) && peerId !== currentId) {
-                    const conn = myPeerNode.connect(peerId);
-                    handleIncomingDataTunnels(conn);
+            myPeerNode.on('error', (err) => {
+                if(err.type === 'id-taken') {
+                    alert("This Room Key is already active as a Host! Change your Room Key or tap 'Join Room'.");
+                    location.reload();
                 }
             });
-        });
+        } else {
+            const joinerId = `comms_room_${cleanRoom}_join_${Math.floor(Math.random()*1000)}`;
+            myPeerNode = new Peer(joinerId, customConfig);
+
+            myPeerNode.on('open', (id) => {
+                printSystemNotice("Connecting straight to host line... 🔍");
+                const targetHostId = `comms_room_${cleanRoom}_host`;
+                const conn = myPeerNode.connect(targetHostId);
+                handleIncomingDataTunnels(conn);
+            });
+        }
     }
 
     function handleIncomingDataTunnels(conn) {
@@ -155,7 +155,7 @@
         });
         
         conn.on('close', () => {
-            printSystemNotice("Partner signal disconnected. Awaiting reconnect... 🔌");
+            printSystemNotice("Partner signal disconnected. 🔌");
         });
     }
 </script>
@@ -169,14 +169,11 @@
         const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const messagePacket = { user: myHandle, bodyText: rawText, timestamp: timeString };
 
-        // If active peer link is live, dispatch packet over data pipeline instantly
         if (peerConnection && peerConnection.open) {
             peerConnection.send(messagePacket);
         }
         
-        // Print your own message locally onto your viewport frame
         appendMessageMarkup(messagePacket);
-        
         field.value = '';
         setTimeout(() => { field.focus(); }, 40);
     }
@@ -207,7 +204,7 @@
         appendMessageMarkup(msg);
     }
 
-    function switchActiveChannel(cName) { return; } // Maintained layout parsing hooks
+    function switchActiveChannel(cName) { return; }
 
     function startLiveWebcamCall() {
         const secureRoomId = btoa(roomCode).replace(/=/g, '').substring(0, 12);
