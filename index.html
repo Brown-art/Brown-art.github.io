@@ -56,6 +56,11 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .pw{color:#fff;text-shadow:0 0 2px #000,0 0 2px #000,0 0 3px #000}.pb{color:#111}
 #cstatus{font-weight:600;margin-bottom:10px}
 #cnew{background:var(--acc);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600}
+#gamesWrap{display:none;flex:1;flex-direction:column;align-items:center;gap:12px;padding:14px;overflow:auto}
+#gmenu{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+#gmenu button{background:var(--acc);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600}
+#gscore{font-weight:600;text-align:center}
+#gc{width:min(62vh,92%,420px);aspect-ratio:1;background:var(--bg1);border-radius:8px;touch-action:none}
 @media(max-width:900px){#members{display:none}#channels{width:210px}}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
 .card{background:var(--bg3);border-radius:12px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px #0008}
@@ -94,6 +99,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
       <button class="ch" data-c="strategy"><span>#</span> strategy</button>
       <button class="ch" data-c="chess"><span>♟️</span> chess</button>
       <button class="ch" data-c="ai"><span>🤖</span> ai-assistant</button>
+      <button class="ch" data-c="games"><span>🎮</span> games</button>
       <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
     <div id="me"><div class="av" id="meav">?<span class="dot"></span></div><div><div id="mename">—</div><div id="status">Offline</div></div></div>
@@ -101,6 +107,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
   <main id="main">
     <div class="head" id="title"># general</div>
     <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
+    <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
   </main>
@@ -306,6 +313,10 @@ function chessRecv(d){
 }
 function panel(ch){
   $("chessWrap").style.display=ch==="chess"?"flex":"none";
+  var gm=ch==="games";
+  $("gamesWrap").style.display=gm?"flex":"none";$("msgs").style.display=gm?"none":"";$("bar").style.display=gm?"none":"";
+  if(!gm&&GM.stop){GM.stop();GM.stop=null}
+  if(gm){$("gscore").textContent="Pick a game above.";var cx=$("gc").getContext("2d");cx.fillStyle="#1e1f22";cx.fillRect(0,0,360,360)}
   if(ch!=="chess")return;
   if(!G&&window.Chess)G=new Chess();
   if(G)drawBoard();else $("cstatus").textContent="Chess engine failed to load.";
@@ -328,6 +339,109 @@ function askAI(text){
     th.text="AI error: "+((e&&e.message)||(e&&e.error&&e.error.message)||"sign-in may have been cancelled. Send your message again.");render();
   });
 }
+
+/* ---------- Mini games (swipe, tap, or arrow keys) ---------- */
+var GM={stop:null};
+function swipes(c,cb){
+  var sx=0,sy=0;
+  c.ontouchstart=function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;e.preventDefault()};
+  c.ontouchend=function(e){var t=e.changedTouches[0],dx=t.clientX-sx,dy=t.clientY-sy;e.preventDefault();
+    if(Math.max(Math.abs(dx),Math.abs(dy))<20)cb("tap");else cb(Math.abs(dx)>Math.abs(dy)?(dx>0?"R":"L"):(dy>0?"D":"U"))};
+  c.onclick=function(){cb("tap")};
+  function kd(e){var m={ArrowLeft:"L",ArrowRight:"R",ArrowUp:"U",ArrowDown:"D"," ":"tap"}[e.key];if(m){e.preventDefault();cb(m)}}
+  document.addEventListener("keydown",kd);
+  return function(){c.ontouchstart=c.ontouchend=c.onclick=null;document.removeEventListener("keydown",kd)};
+}
+function gstart(g){
+  if(GM.stop)GM.stop();
+  var c=$("gc"),x=c.getContext("2d"),sc=$("gscore");
+  ({snake:snake,"2048":g2048,flap:flap})[g](c,x,sc);
+}
+function snake(c,x,sc){
+  var N=18,Z=20,s,d,nd,f,pts,over,t;
+  var dirs={L:{x:-1,y:0},R:{x:1,y:0},U:{x:0,y:-1},D:{x:0,y:1}};
+  function hit(p,q){return p.x===q.x&&p.y===q.y}
+  function rf(){do{f={x:Math.random()*N|0,y:Math.random()*N|0}}while(s.some(function(p){return hit(p,f)}))}
+  function init(){s=[{x:9,y:9},{x:8,y:9}];d=nd=dirs.R;pts=0;over=false;rf();sc.textContent="Swipe to steer. Score 0"}
+  function draw(){
+    x.fillStyle="#1e1f22";x.fillRect(0,0,360,360);
+    x.fillStyle="#f23f42";x.fillRect(f.x*Z+2,f.y*Z+2,Z-4,Z-4);
+    s.forEach(function(p,i){x.fillStyle=i?"#23a55a":"#57f287";x.fillRect(p.x*Z+1,p.y*Z+1,Z-2,Z-2)});
+  }
+  function step(){
+    if(over)return;
+    d=nd;var h={x:s[0].x+d.x,y:s[0].y+d.y};
+    if(h.x<0||h.y<0||h.x>=N||h.y>=N||s.some(function(p){return hit(p,h)})){over=true;sc.textContent="Game over. Score "+pts+". Tap to restart";return}
+    s.unshift(h);
+    if(hit(h,f)){pts++;sc.textContent="Score "+pts;rf()}else s.pop();
+    draw();
+  }
+  var off=swipes(c,function(k){
+    if(over){if(k==="tap")init();return}
+    var n=dirs[k];if(n&&!(n.x===-d.x&&n.y===-d.y))nd=n;
+  });
+  init();draw();t=setInterval(step,120);
+  GM.stop=function(){clearInterval(t);off()};
+}
+function g2048(c,x,sc){
+  var g,pts,over;
+  var col={0:"#383a40",2:"#eee4da",4:"#ede0c8",8:"#f2b179",16:"#f59563",32:"#f67c5f",64:"#f65e3b",128:"#edcf72",256:"#edcc61",512:"#edc850",1024:"#edc53f",2048:"#edc22e"};
+  function add(){var e=[];g.forEach(function(v,i){if(!v)e.push(i)});if(e.length)g[e[Math.random()*e.length|0]]=Math.random()<.9?2:4}
+  function line(a){var r=a.filter(Boolean),o=[];for(var i=0;i<r.length;i++){if(r[i]===r[i+1]){o.push(r[i]*2);pts+=r[i]*2;i++}else o.push(r[i])}while(o.length<4)o.push(0);return o}
+  function draw(){
+    x.fillStyle="#2b2d31";x.fillRect(0,0,360,360);
+    g.forEach(function(v,i){
+      var cx=(i%4)*90+5,cy=(i/4|0)*90+5;
+      x.fillStyle=col[v]||"#3c3a32";x.fillRect(cx,cy,80,80);
+      if(v){x.fillStyle=v<8?"#776e65":"#fff";x.font="bold "+(v>999?26:34)+"px sans-serif";x.textAlign="center";x.textBaseline="middle";x.fillText(v,cx+40,cy+42)}
+    });
+    sc.textContent=over?"No moves left. Score "+pts+". Tap to restart":"Swipe to merge tiles. Score "+pts;
+  }
+  function init(){g=new Array(16).fill(0);pts=0;over=false;add();add();draw()}
+  function move(k){
+    var before=g.join();
+    for(var i=0;i<4;i++){
+      var idx=[0,1,2,3].map(function(j){return k==="L"||k==="R"?i*4+j:j*4+i});
+      if(k==="R"||k==="D")idx.reverse();
+      var out=line(idx.map(function(q){return g[q]}));
+      idx.forEach(function(q,j){g[q]=out[j]});
+    }
+    if(g.join()!==before)add();
+    over=!g.some(function(v,i){return !v||(i%4<3&&v===g[i+1])||(i<12&&v===g[i+4])});
+    draw();
+  }
+  var off=swipes(c,function(k){if(over){if(k==="tap")init();return}if(k!=="tap")move(k)});
+  init();GM.stop=off;
+}
+function flap(c,x,sc){
+  var y,v,p,pts,over,run,t;
+  function init(){y=180;v=0;p=[{x:360,g:180}];pts=0;over=false;run=false;sc.textContent="Tap to flap through the gaps"}
+  function draw(){
+    x.fillStyle="#1e1f22";x.fillRect(0,0,360,360);
+    x.fillStyle="#23a55a";
+    p.forEach(function(o){x.fillRect(o.x,0,44,o.g-55);x.fillRect(o.x,o.g+55,44,360)});
+    x.fillStyle="#f0b232";x.beginPath();x.arc(80,y,12,0,7);x.fill();
+  }
+  function step(){
+    if(run&&!over){
+      v+=0.45;y+=v;
+      p.forEach(function(o){
+        o.x-=2.5;
+        if(!o.s&&o.x+44<80){o.s=1;pts++;sc.textContent="Score "+pts}
+        if(92>o.x&&68<o.x+44&&(y-12<o.g-55||y+12>o.g+55))over=true;
+      });
+      if(p[0].x<-50)p.shift();
+      if(p[p.length-1].x<170)p.push({x:p[p.length-1].x+190,g:90+Math.random()*180});
+      if(y>348||y<12)over=true;
+      if(over)sc.textContent="Game over. Score "+pts+". Tap to restart";
+    }
+    draw();
+  }
+  var off=swipes(c,function(){if(over){init();return}run=true;v=-7});
+  init();t=setInterval(step,16);
+  GM.stop=function(){clearInterval(t);off()};
+}
+document.querySelectorAll("#gmenu button").forEach(function(b){tap(b,function(){gstart(b.dataset.g)})});
 
 /* ---------- Wiring ---------- */
 tap($("host"),function(){start(true)});
