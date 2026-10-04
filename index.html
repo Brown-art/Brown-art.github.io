@@ -61,6 +61,17 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 #gmenu button{background:var(--acc);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600}
 #gscore{font-weight:600;text-align:center}
 #gc{width:min(62vh,92%,420px);aspect-ratio:1;background:var(--bg1);border-radius:8px;touch-action:none}
+#memeWrap{display:none;flex:1;flex-direction:column;gap:10px;padding:12px 16px;min-height:0}
+#mtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#msearch{flex:1;min-width:140px;background:var(--bg4);border:0;border-radius:8px;padding:10px 12px;color:var(--tx);font-size:16px;outline:0}
+#mrand{background:var(--acc);color:#fff;border-radius:8px;padding:10px 14px;font-weight:600}
+#mcount{color:var(--mut);font-size:13px}#mnote{color:var(--grn);font-weight:600;font-size:13px}
+#mchips{display:flex;gap:6px;overflow-x:auto;flex:none}
+.chip{flex:none;background:var(--bg4);color:var(--tx);border-radius:16px;padding:6px 14px}.chip.on{background:var(--acc);color:#fff}
+#mgrid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start}
+.mc{background:var(--bg2);border-radius:10px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:6px;justify-content:space-between;min-height:150px;cursor:pointer}
+.mc:active{background:var(--bg4)}.me{font-size:44px;line-height:1.1}
+.mt{font:900 16px Impact,"Arial Black",sans-serif;color:#fff;text-transform:uppercase;white-space:pre-line;overflow-wrap:anywhere;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
 @media(max-width:900px){#members{display:none}#channels{width:210px}}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
 .card{background:var(--bg3);border-radius:12px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px #0008}
@@ -100,6 +111,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
       <button class="ch" data-c="chess"><span>♟️</span> chess</button>
       <button class="ch" data-c="ai"><span>🤖</span> ai-assistant</button>
       <button class="ch" data-c="games"><span>🎮</span> games</button>
+      <button class="ch" data-c="memes"><span>😂</span> meme-library</button>
       <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
     <div id="me"><div class="av" id="meav">?<span class="dot"></span></div><div><div id="mename">—</div><div id="status">Offline</div></div></div>
@@ -108,6 +120,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
     <div class="head" id="title"># general</div>
     <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
     <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
+    <div id="memeWrap"><div id="mtop"><input id="msearch" placeholder="Search memes…" autocomplete="off"><button id="mrand">🎲 Random 12</button><span id="mcount"></span><span id="mnote"></span></div><div id="mchips"></div><div id="mgrid"></div></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
   </main>
@@ -313,8 +326,10 @@ function chessRecv(d){
 }
 function panel(ch){
   $("chessWrap").style.display=ch==="chess"?"flex":"none";
-  var gm=ch==="games";
-  $("gamesWrap").style.display=gm?"flex":"none";$("msgs").style.display=gm?"none":"";$("bar").style.display=gm?"none":"";
+  var gm=ch==="games",mm=ch==="memes";
+  $("gamesWrap").style.display=gm?"flex":"none";$("memeWrap").style.display=mm?"flex":"none";
+  $("msgs").style.display=(gm||mm)?"none":"";$("bar").style.display=(gm||mm)?"none":"";
+  if(mm)memeDraw();
   if(!gm&&GM.stop){GM.stop();GM.stop=null}
   if(gm){$("gscore").textContent="Pick a game above.";var cx=$("gc").getContext("2d");cx.fillStyle="#1e1f22";cx.fillRect(0,0,360,360)}
   if(ch!=="chess")return;
@@ -442,6 +457,175 @@ function flap(c,x,sc){
   GM.stop=function(){clearInterval(t);off()};
 }
 document.querySelectorAll("#gmenu button").forEach(function(b){tap(b,function(){gstart(b.dataset.g)})});
+
+/* ---------- Meme library (tap a meme to post it to #general) ---------- */
+var MEMES=(function(){
+  var o=[];
+  [["School",`📚|When the teacher says "pop quiz"|my brain: error 404
+😴|Alarm at 6:30 AM|my bed: stay
+📝|Homework due tomorrow|me at 11:59 PM: let's begin
+🎒|Backpack on Monday|backpack on Friday: empty and free
+🕐|Looking at the clock|only 2 minutes passed
+🍕|Pizza day at lunch|best day of the school year
+📱|Phone buzzes in class|stay calm, do not look
+🤓|Teacher: any questions?|the whole class: silence
+✏️|Borrowed a pencil once|never saw it again
+📖|"This test is easy"|test: first question
+🚌|Missed the bus|and my whole life flashed by
+🏫|Snow day announced|instant happiness
+👀|Copying homework|"change a few words" - genius
+🧮|Math class|when will I ever use this? Always.
+🔔|Bell rings|everyone leaves before the teacher finishes
+🥱|Group project|one person does everything
+🎤|Presentation day|my knees: shaking
+📅|Weekend|gone in 3 seconds
+🧠|Studying for 5 minutes|my brain: that's enough
+🍎|Teacher's pet|knows all the answers`],
+  ["Gaming",`🎮|One more game|it's 3 AM
+🕹️|Lag spikes|right when I was winning
+🏆|Won one match|I'm basically a pro
+💀|Dying in the first minute|"Lag"
+🎧|Gaming headset on|world off
+🔋|Controller at 1% battery|the final boss
+👾|Easy mode|hard mode: pain
+🧩|Loot found|inventory full
+😤|Lost again|"my teammates were bad"
+🚀|New update|everything changed
+🐢|Slow Wi-Fi|downloading since Tuesday
+🎯|Missed every shot|aimbot? never heard of it
+🛡️|Playing defense|nobody noticed
+🗺️|Followed the map|still lost
+🔥|Speedrunning homework|new world record
+🤝|Co-op mode|one carries, one watches
+💎|Rare drop|my luck finally returned
+🧱|Building a base|enemy: demolition
+⌨️|Rage quit|reinstalled 2 minutes later
+🎲|Roll the dice|critical failure`],
+  ["Food",`🍕|Pineapple on pizza|the internet: war
+🌮|Taco Tuesday|best day of the week
+🍔|Diet starts Monday|burger on Sunday
+🍟|Fries in the bag|always shared, never fairly
+🍦|Ice cream falls|a moment of silence
+🥞|Pancakes at midnight|a good decision
+🍜|Instant noodles|chef level: expert
+🧀|Cheese|solves everything
+🍫|Hidden snack stash|found by little brother
+🥤|Soda fizz|exploded everywhere
+🍩|Last donut|everyone pretends not to look
+🥑|Avocado ripe for 4 seconds|then brown
+🍪|Cookies are done|burnt on one side again
+🍿|Movie night|popcorn gone in 10 minutes
+🥗|Eating a salad|and telling everyone about it
+🍳|Cooking an egg|shell in the pan
+🧃|Juice box|tiny straw, big joy
+🍇|Grapes in the freezer|elite snack
+🌭|Sausage roll|no regrets
+🍰|Birthday cake|best part: the corner piece`],
+  ["Pets",`🐶|Dog hears "walk"|instant fireworks
+🐱|Cat knocks a cup off the table|eye contact
+🐹|Hamster at 3 AM|the wheel never stops
+🐟|Fish stare|judging my life choices
+🦜|Parrot repeats a bad word|in front of grandma
+🐕|Dog waits at the door|best friend energy
+😺|Cat in a box|if it fits, it sits
+🐰|Bunny zoomies|physics has left the chat
+🐢|Turtle|no hurry, no worries
+🐾|Muddy paw prints|on the clean floor
+🐦|Birds at 5 AM|why so loud
+🦴|Found a bone|buried it again
+🐈|Cat ignores me all day|then sits on my keyboard
+🐩|Fresh haircut|dog thinks it's a model
+🐠|Feeding the fish|they act like they're starving
+🦮|Dog's head out of the car window|pure joy
+🐁|Mouse in the house|the cat took the day off
+🐴|Horse|neigh
+🐸|Frog|ribbit-ing performance
+🦎|Lizard on the wall|watching you`],
+  ["Tech",`💻|Computer freezes|"just one second"
+🔌|Charger not working|only the one I have
+📶|Wi-Fi: 1 bar|loading since 2019
+🔄|Turn it off and on again|fixes everything
+🖱️|Click, click, click|nothing happens
+🔒|Password needs a capital, number, symbol|I forgot it immediately
+📲|Update available|restart in 3 hours
+🐞|Fixed one bug|made three more
+💾|Forgot to save|the dark times
+🤖|AI|"I'm just getting started"
+📧|Reply all|a big mistake
+🖥️|Tab count: 47|I am organized
+🔍|Searching for the answer|the answer: page 12
+🎵|Headphones tangled|from nothing
+📸|Camera roll|8,000 photos of nothing
+🧑‍💻|It works on my machine|famous last words
+🌐|No internet|dinosaur mode
+⏳|Download: 99%|stays at 99%
+🛠️|Fixed it with tape|engineering excellence
+🔊|Volume at 100%|neighbors know my taste`],
+  ["Life",`☕|Before coffee|zombie mode
+🛏️|Just five more minutes|three hours later
+🌧️|Forgot an umbrella|of course it rains
+💸|Pay day|goodbye money
+🧦|Lost sock|the washing machine takes a tax
+🚪|Walked into a room|forgot why
+🕰️|Adulting|too much, too soon
+🎉|Plans canceled|best feeling ever
+🧹|Cleaning my room|found 3 old snacks
+🍂|Autumn|sweaters and snacks
+🌞|Sunday afternoon|the Monday feeling starts
+🚿|Shower thoughts|brilliant ideas, zero notes
+📦|Online order arrived|not what I ordered
+🧊|Cold side of the pillow|elite
+😅|"I'll do it later"|later never came
+🪴|Plant|still alive, somehow
+🛒|Went to the store for milk|came home with 12 other things
+⏰|Snooze|a dangerous friend
+🎈|Birthday|another year of snacks
+💤|Early night|stayed up until 2 AM anyway`]
+  ].forEach(function(c){c[1].split("\n").forEach(function(l){var q=l.split("|");o.push({c:c[0],e:q[0],t:q[1],b:q[2]||""})})});
+  return o;
+})();
+var GEN=[],mcat="All",mq="";
+function pick(a){return a[Math.random()*a.length|0]}
+function postGeneral(text){
+  if(!S.peer)return;
+  var m={t:"msg",ch:"general",user:S.name,text:text.slice(0,2000),ts:Date.now()};
+  addMsg("general",m);
+  if(S.isHost)broadcast(m);else if(S.hostConn&&S.hostConn.open)S.hostConn.send(m);
+}
+function memeDraw(){
+  var g=$("mgrid");g.textContent="";
+  var all=GEN.concat(MEMES).filter(function(m){return(mcat==="All"||m.c===mcat)&&(m.t+" "+m.b).toLowerCase().indexOf(mq)>=0});
+  $("mcount").textContent=all.length+" memes";
+  all.forEach(function(m){
+    var d=document.createElement("div");d.className="mc";
+    [m.t,m.e,m.b].forEach(function(x,i){if(!x)return;var e=document.createElement("div");e.className=i===1?"me":"mt";e.textContent=x;d.appendChild(e)});
+    d.onclick=function(){postGeneral(m.e+" "+m.t.replace(/\n/g," / ")+(m.b?" \u2014 "+m.b:""));var n=$("mnote");n.textContent="Sent to #general \u2705";setTimeout(function(){n.textContent=""},1500)};
+    g.appendChild(d);
+  });
+}
+function memeGen(){
+  var A=["doing homework at midnight","forgetting my password","looking for my phone while holding it","saying one more game","reading the group chat","opening the fridge again","pretending to listen in class","cleaning my room for 5 minutes","finishing the snack in one go","taking 100 photos of a sandwich","waiting for the Wi-Fi","hiding from a pop quiz"];
+  var B=["My brain","My wallet","My cat","My teacher","Future me","The group chat","My alarm clock","My snacks","My keyboard"];
+  var E=["😂","🤣","😎","🥲","🙃","😭","🤯","🫠","😬","🤔"];
+  for(var i=0;i<12;i++){
+    var a=pick(A),a2=pick(A);
+    var t=[ "Nobody:\nMe: "+a, "POV: "+a, a+" vs "+a2, "Me: "+a+"\nAlso me: "+a2, pick(B)+" when I'm "+a ][Math.random()*5|0];
+    GEN.unshift({c:"Random",e:pick(E),t:t,b:""});
+  }
+  GEN.length=Math.min(GEN.length,60);mcat="All";
+  [].forEach.call($("mchips").children,function(x,i){x.classList.toggle("on",i===0)});
+  memeDraw();
+}
+(function(){
+  var c=$("mchips");
+  ["All","School","Gaming","Food","Pets","Tech","Life"].forEach(function(n,i){
+    var b=document.createElement("button");b.textContent=n;b.className="chip"+(i?"":" on");
+    b.onclick=function(){mcat=n;[].forEach.call(c.children,function(x){x.classList.toggle("on",x===b)});memeDraw()};
+    c.appendChild(b);
+  });
+  $("msearch").oninput=function(){mq=this.value.toLowerCase().trim();memeDraw()};
+  $("mrand").onclick=memeGen;
+})();
 
 /* ---------- Wiring ---------- */
 tap($("host"),function(){start(true)});
