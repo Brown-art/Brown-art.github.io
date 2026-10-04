@@ -2,106 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atomic Sandbox & Live Multi-Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Atomic Grand Sandbox: Empire Conquest Grid</title>
+    <script src="https://cloudflare.com"></script>
     <script src="https://cloudflare.com"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; user-select: none; }
-        body { background-color: #0d0d11; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        header { background: #050508; padding: 12px; text-align: center; border-bottom: 3px solid #3b82f6; }
-        header h1 { font-size: 24px; color: #3b82f6; }
-        header p { font-size: 12px; color: #aaa; }
-        #main-split { flex: 1; display: flex; width: 100vw; height: calc(100vh - 60px); overflow: hidden; }
-        #game-side { flex: 3; display: flex; flex-direction: column; padding: 15px; gap: 12px; overflow-y: auto; }
-        #chat-side { flex: 1; min-width: 300px; max-width: 400px; background: #161622; border-left: 2px solid #232334; display: flex; flex-direction: column; padding: 15px; }
-        .hud { background: #161622; padding: 12px; border-radius: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; border: 1px solid #27273a; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; user-select: none; }
+        body { background-color: #0b0b0e; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: #050507; padding: 10px; text-align: center; border-bottom: 3px solid #ef4444; }
+        header h1 { font-size: 22px; color: #ef4444; text-transform: uppercase; letter-spacing: 1px; }
+        header p { font-size: 11px; color: #aaa; }
+        #main-split { flex: 1; display: flex; width: 100vw; height: calc(100vh - 55px); overflow: hidden; }
+        #game-side { flex: 3; display: flex; flex-direction: column; padding: 12px; gap: 10px; overflow-y: auto; }
+        #chat-side { flex: 1; min-width: 280px; max-width: 360px; background: #12121a; border-left: 2px solid #222230; display: flex; flex-direction: column; padding: 12px; }
+        .hud { background: #14141f; padding: 10px; border-radius: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; border: 1px solid #222235; }
         .stat { text-align: center; }
-        .stat-label { font-size: 11px; color: #888; text-transform: uppercase; font-weight: bold; }
-        .stat-val { font-size: 20px; font-weight: bold; }
+        .stat-label { font-size: 10px; color: #888; text-transform: uppercase; font-weight: bold; }
+        .stat-val { font-size: 18px; font-weight: bold; margin-top: 2px; }
         .color-blue { color: #3b82f6; }
         .color-yellow { color: #eab308; }
         .color-purple { color: #a855f7; }
-        .blueprints-box { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-        .btn { background: #1e1e2f; border: 1px solid #3d3d52; color: #fff; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 135px; }
-        .btn.active { background: #3b82f6; border-color: #60a5fa; }
-        .btn span { font-size: 10px; color: #bbb; }
-        #status-bar { text-align: center; font-size: 13px; color: #3b82f6; background: rgba(59,130,246,0.1); padding: 8px; border-radius: 6px; border: 1px solid rgba(59,130,246,0.2); }
-        .map-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 350px; }
-        .map-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(5, 1fr); gap: 6px; width: 100%; height: 100%; max-height: 450px; background: #111118; padding: 10px; border-radius: 12px; border: 2px solid #222230; }
-        .cell { background: #1c1c28; border: 1px solid #2d2d42; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; position: relative; }
-        .cell-info { font-size: 9px; color: #cbd5e1; margin-top: 3px; background: rgba(0,0,0,0.7); padding: 1px 4px; border-radius: 3px; font-weight: bold; }
-        .reactor-danger { background: rgba(239,68,68,0.25) !important; border-color: #ef4444 !important; }
-        #chat-header { font-size: 16px; font-weight: bold; padding-bottom: 10px; border-bottom: 1px solid #2d2d42; color: #3b82f6; display: flex; justify-content: space-between; }
-        #network-status { font-size: 10px; padding: 2px 6px; border-radius: 10px; background: #dc2626; }
-        #chat-messages { flex: 1; overflow-y: auto; margin: 15px 0; display: flex; flex-direction: column; gap: 8px; user-select: text; }
-        .msg-bubble { background: #232334; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
-        .msg-user { font-weight: bold; color: #60a5fa; font-size: 11px; }
-        #chat-input-area { display: flex; gap: 6px; }
-        #chat-input { flex: 1; background: #0f0f13; border: 1px solid #3d3d52; border-radius: 6px; padding: 10px; color: white; user-select: text; }
-        #send-btn { background: #3b82f6; border: none; padding: 0 15px; border-radius: 6px; color: white; font-weight: bold; }
-        #username-prompt { display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; height: 100%; text-align: center; }
+        .color-green { color: #22c55e; }
+        .color-red { color: #ef4444; }
+        .blueprints-box { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .btn { background: #1a1a26; border: 1px solid #33334c; color: #fff; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; display: flex; flex-direction: column; align-items: center; min-width: 120px; }
+        .btn.active { background: #ef4444; border-color: #fca5a5; }
+        .btn span { font-size: 9px; color: #bbb; font-weight: normal; }
+        #status-bar { text-align: center; font-size: 12px; color: #ef4444; background: rgba(239,68,68,0.1); padding: 6px; border-radius: 4px; border: 1px solid rgba(239,68,68,0.2); font-weight: bold; }
+        .map-wrapper { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px; min-height: 300px; }
+        .map-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%; max-height: 420px; background: #08080c; padding: 8px; border-radius: 10px; border: 2px solid #1a1a26; overflow-y: auto; }
+        .cell { background: #13131c; border: 1px solid #222235; border-radius: 6px; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: relative; transition: all 0.2s; }
+        .lvl-2 { border-color: #3b82f6 !important; background: #171d30 !important; }
+        .lvl-3-farm { border-color: #22c55e !important; background: #12291b !important; box-shadow: inset 0 0 10px rgba(34,197,94,0.3); }
+        .lvl-3-house { border-color: #a855f7 !important; background: #231533 !important; box-shadow: inset 0 0 10px rgba(168,85,247,0.3); }
+        .lvl-3-lab { border-color: #eab308 !important; background: #2b2512 !important; box-shadow: inset 0 0 10px rgba(234,179,8,0.3); }
+        .cell-info { font-size: 8px; color: #cbd5e1; margin-top: 2px; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 3px; font-weight: bold; text-align: center; }
+        .reactor-danger { background: rgba(239,68,68,0.2) !important; border-color: #ef4444 !important; }
+        #chat-header { font-size: 14px; font-weight: bold; padding-bottom: 8px; border-bottom: 1px solid #222235; color: #ef4444; display: flex; justify-content: space-between; }
+        #network-status { font-size: 9px; padding: 2px 5px; border-radius: 8px; background: #dc2626; color: white; }
+        #chat-messages { flex: 1; overflow-y: auto; margin: 10px 0; display: flex; flex-direction: column; gap: 6px; }
+        .msg-bubble { background: #1a1a26; padding: 6px 10px; border-radius: 6px; font-size: 12px; transition: all 0.3s; }
+        .strike-alert { border: 2px solid #ef4444 !important; background: #2d1212 !important; animation: blinker 0.8s linear infinite; }
+        @keyframes blinker { 50% { border-color: transparent; } }
+        .msg-user { font-weight: bold; color: #ef4444; font-size: 10px; }
+        #chat-input-area { display: flex; gap: 4px; }
+        #chat-input { flex: 1; background: #09090d; border: 1px solid #33334c; border-radius: 6px; padding: 8px; color: white; font-size: 12px; }
+        #send-btn { background: #ef4444; border: none; padding: 0 12px; border-radius: 6px; color: white; font-weight: bold; }
+        #username-prompt { display: flex; flex-direction: column; gap: 8px; align-items: center; justify-content: center; height: 100%; text-align: center; }
+        #victory-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #000; z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        #certificate-card { background: linear-gradient(135deg, #1e1b4b 0%, #311042 100%); border: 8px double #eab308; padding: 40px; border-radius: 15px; width: 90%; max-width: 650px; text-align: center; box-shadow: 0 0 30px rgba(234,179,8,0.3); color: #fff; }
+        #certificate-card h2 { font-size: 28px; color: #eab308; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 2px; }
+        #certificate-card p { font-size: 16px; margin: 10px 0; line-height: 1.5; }
+        .cert-seal { font-size: 60px; margin: 20px 0; }
     </style>
 </head>
 <body>
+    <div id="victory-screen">
+        <div id="certificate-card">
+            <h2>🏆 Galactic Empire Victory Seal 🏆</h2>
+            <p>This document officially validates that</p>
+            <h3 id="winner-name" style="font-size: 24px; color: #22c55e; margin: 10px 0;">COMMANDER</h3>
+            <p>has successfully conquered the Sandbox Frontier, completely maximized all infrastructure blocks to Level 3, unlocked alternative energy, and achieved absolute technological supremacy.</p>
+            <div class="cert-seal">🎖️</div>
+            <p style="font-size: 12px; color: #eab308;">Verified Server Matrix Hash: Secured</p>
+        </div>
+        <button class="btn" style="background:#eab308; color:#000; padding:15px 30px; font-size:16px; margin-top:20px; box-shadow:0 4px 15px rgba(234,179,8,0.4);" onclick="saveCertificateToGallery()">📥 Save Certificate to Photos</button>
+    </div>
     <header>
-        <h1>📡 Serverless Core Sandbox &amp; Live Chat Network</h1>
-        <p>Build your colony, maintain grid stability, and send live radio signals!</p>
+        <h1>☢️ Atomic Grand Sandbox: Empire Conquest Grid 💣</h1>
+        <p>Command Suite: Buy land, expand layout parameters, level architecture, and launch tactical communications network strikes!</p>
     </header>
     <div id="main-split">
         <div id="game-side">
             <div class="hud">
                 <div class="stat"><div class="stat-label">Citizens</div><div class="stat-val color-blue" id="stat-pop">12</div></div>
-                <div class="stat"><div class="stat-label">Treasury</div><div class="stat-val" id="stat-cash">$250</div></div>
+                <div class="stat"><div class="stat-label">Treasury</div><div class="stat-val color-green" id="stat-cash">$250</div></div>
                 <div class="stat"><div class="stat-label">Science</div><div class="stat-val color-yellow" id="stat-science">0 XP</div></div>
-                <div class="stat"><div class="stat-label">Power</div><div class="stat-val color-blue" id="stat-power">0 MW</div></div>
-                <div class="stat"><div class="stat-label">Plots</div><div class="stat-val color-purple" id="stat-plots">0/35</div></div>
+                <div class="stat"><div class="stat-label">Power</div><div class="stat-val color-purple" id="stat-power">0 MW</div></div>
+                <div class="stat"><div class="stat-label">Territory</div><div class="stat-val color-red" id="stat-plots">0/21</div></div>
             </div>
             <div class="blueprints-box">
                 <button class="btn" id="tool-farm" onclick="selectTool('farm')">🌾 Farm <span>$50</span></button>
                 <button class="btn" id="tool-house" onclick="selectTool('house')">🏠 Cabin <span>$90</span></button>
                 <button class="btn" id="tool-lab" onclick="selectTool('lab')">🧪 Lab <span>$150</span></button>
+                <button class="btn" id="tool-cooler" onclick="selectTool('cooler')">💧 Cooler <span>$200</span></button>
                 <button class="btn" id="tool-reactor" onclick="selectTool('reactor')">⚛️ Reactor <span>$450</span></button>
-                <button class="btn" style="background:#eab308;" onclick="run30TimesTest()">🤖 Run 30x Test</button>
-                <button class="btn" style="background:#dc2626;" onclick="resetEntireSimulation()">🗑️ Reset</button>
+                <button class="btn" id="tool-solar" onclick="selectTool('solar')">🔒 Solar Grid <span>Req: 120 XP</span></button>
+                <button class="btn" style="background:#a855f7; border-color:#c084fc;" onclick="purchaseNewTerritoryPlots()">🛒 Buy Land <span>$2000</span></button>
+                <button class="btn" style="background:#ef4444; border-color:#b91c1c;" onclick="launchGlobalRadioStrike()">⚔️ Strike Live Rivals <span>$500</span></button>
             </div>
-            <div id="status-bar">Select a construction blueprint above!</div>
+            <div id="status-bar">Initialize colony array systems. Upgrade structures by tapping them when tools are unselected.</div>
             <div class="map-wrapper"><div class="map-grid" id="sandbox-map"></div></div>
         </div>
         <div id="chat-side">
             <div id="username-prompt">
-                <h3>Enter Radio</h3>
-                <input type="text" id="username-input" value="Commander" style="background:#0f0f13; border:1px solid #3d3d52; padding:8px; color:white; border-radius:6px; text-align:center;">
-                <button class="btn" onclick="connectToChatNetwork()">Connect</button>
+                <h3>Enter Battle Comms</h3>
+                <input type="text" id="username-input" value="Commander" style="background:#09090d; border:1px solid #33334c; padding:8px; color:white; border-radius:6px; text-align:center; width:80%;">
+                <button class="btn" onclick="connectToChatNetwork()" ontouchstart="connectToChatNetwork()">Connect</button>
             </div>
             <div id="active-chat-box" style="display: none; flex: 1; flex-direction: column; height: 100%;">
-                <div id="chat-header"><span>📡 Radio Room</span><span id="network-status">CONNECTED</span></div>
+                <div id="chat-header"><span>📡 Radio Freq</span><span id="network-status">CONNECTED</span></div>
                 <div id="chat-messages"></div>
                 <div id="chat-input-area">
-                    <input type="text" id="chat-input" placeholder="Type a message..." onkeypress="handleChatKey(event)">
-                    <button id="send-btn" onclick="sendBroadcastMessage()">Send</button>
+                    <input type="text" id="chat-input" placeholder="Broadcast alert..." onkeypress="handleChatKey(event)">
+                    <button id="send-btn" onclick="sendBroadcastMessage()" ontouchstart="sendBroadcastMessage()">Send</button>
                 </div>
             </div>
         </div>
     </div>
     <script>
-        const columns = 7, rows = 5, mapTotalSize = 35;
-        const state = { pop: 12, cash: 250, science: 0, power: 0, activeTool: null, tiles: Array(35).fill(null).map(() => ({ type: 'empty', temp: 0 })) };
-        const costs = { farm: 50, house: 90, lab: 150, reactor: 450 };
-        const visualIcons = { empty: '🌱', farm: '🌾', house: '🏠', lab: '🧪', reactor: '⚛️', ash: '⚫' };
-        let mqttClient = null, myCallsign = "Commander", globalTopicChannel = "sandbox/global/chat/room/v1";
+        const columns = 7; let currentTotalPlots = 21;
+        let state = { pop: 12, cash: 250, science: 0, power: 0, activeTool: null, tiles: Array(21).fill(null).map(() => ({ type: 'empty', temp: 0, level: 1 })) };
+        const costs = { farm: 50, house: 90, lab: 150, cooler: 200, reactor: 450, solar: 600 };
+        const visualIcons = { empty: '🌱', farm: '🌾', house: '🏠', lab: '🧪', cooler: '💧', reactor: '⚛️', solar: '☀️', ash: '⚫' };
+        let mqttClient = null, myCallsign = "Commander", globalTopicChannel = "sandbox/global/chat/room/v2";
 
         function drawMapGrid() {
-            const container = document.getElementById('sandbox-map');
-            container.innerHTML = ''; let bCount = 0;
+            const container = document.getElementById('sandbox-map'); container.innerHTML = ''; let bCount = 0;
             state.tiles.forEach((tile, idx) => {
                 const cell = document.createElement('div'); cell.className = 'cell';
-                cell.innerText = visualIcons[tile.type];
+                if (tile.type === 'farm' && tile.level === 3) { cell.innerText = '🌲'; cell.classList.add('lvl-3-farm'); }
+                else if (tile.type === 'house' && tile.level === 3) { cell.innerText = '🏢'; cell.classList.add('lvl-3-house'); }
+                else if (tile.type === 'lab' && tile.level === 3) { cell.innerText = '🛰️'; cell.classList.add('lvl-3-lab'); }
+                else { cell.innerText = visualIcons[tile.type]; if (tile.level === 2) cell.classList.add('lvl-2'); }
                 if (tile.type !== 'empty') bCount++;
                 if (tile.type === 'reactor') {
                     if (tile.temp > 75) cell.classList.add('reactor-danger');
-                    const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = `${Math.floor(tile.temp)}°C`; cell.appendChild(lbl);
-                } else if (tile.type !== 'empty') {
-                    const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = tile.type.toUpperCase(); cell.appendChild(lbl);
+                    const coolersCount = countAdjacentCoolers(idx);
+                    const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = `${coolersCount > 0 ? '❄️x' + coolersCount : '⚠️'} ${Math.floor(tile.temp)}°C`; cell.appendChild(lbl);
+                } else if (tile.type !== 'empty' && tile.type !== 'ash' && tile.type !== 'cooler' && tile.type !== 'solar') {
+                    const lbl = document.createElement('div'); lbl.className = 'cell-info'; lbl.innerText = `LVL ${tile.level} ${tile.type.toUpperCase()}`; cell.appendChild(lbl);
                 }
                 cell.onclick = () => processInteractions(idx); container.appendChild(cell);
             });
@@ -109,84 +139,140 @@
             document.getElementById('stat-cash').innerText = `$${state.cash}`;
             document.getElementById('stat-science').innerText = `${state.science} XP`;
             document.getElementById('stat-power').innerText = `${state.power} MW`;
-            document.getElementById('stat-plots').innerText = `${bCount}/35`;
+            document.getElementById('stat-plots').innerText = `${bCount}/${currentTotalPlots}`;
+            updateBlueprintButtons(); checkVictoryConditions();
+        }
+        function updateBlueprintButtons() {
+            const rBtn = document.getElementById('tool-reactor'); const sBtn = document.getElementById('tool-solar');
+            if (rBtn) rBtn.innerHTML = state.science >= 45 ? "⚛️ Reactor <span>\$450</span>" : "🔒 Locked <span>45 XP</span>";
+            if (sBtn) {
+                if (state.science >= 120) { sBtn.innerHTML = "☀️ Solar Grid <span>\$600</span>"; sBtn.onclick = () => selectTool('solar'); sBtn.style.background = "#eab308"; }
+                else { sBtn.innerHTML = "🔒 Locked <span>120 XP</span>"; sBtn.onclick = null; sBtn.style.background = "#1a1a26"; }
+            }
         }
 
         function selectTool(blueprint) {
             document.querySelectorAll('.blueprints-box .btn').forEach(b => b.classList.remove('active'));
             if (state.activeTool === blueprint) { state.activeTool = null; } 
-            else { state.activeTool = blueprint; document.getElementById(`tool-${blueprint}`).classList.add('active'); }
+            else { state.activeTool = blueprint; const b = document.getElementById(`tool-${blueprint}`); if(b) b.classList.add('active'); }
         }
 
         function processInteractions(idx) {
             const tile = state.tiles[idx];
             if (tile.type === 'reactor') { tile.temp = Math.max(20, tile.temp - 30); drawMapGrid(); return; }
-            if (!state.activeTool) return;
-            const tool = state.activeTool;
-            if (state.cash < costs[tool] || tile.type !== 'empty') return;
-            state.cash -= costs[tool]; state.tiles[idx] = { type: tool, temp: 20 };
+            if (!state.activeTool) {
+                if (['farm', 'house', 'lab'].includes(tile.type) && tile.level < 3) {
+                    const cost = Math.floor(costs[tile.type] * 1.6 * tile.level);
+                    if (state.cash >= cost) { state.cash -= cost; tile.level++; drawMapGrid(); }
+                }
+                return;
+            }
+            const tool = state.activeTool; if (state.cash < costs[tool] || tile.type !== 'empty') return;
+            if (tool === 'reactor' && state.science < 45) return;
+            state.cash -= costs[tool]; state.tiles[idx] = { type: tool, temp: 20, level: 1 };
             state.activeTool = null; document.querySelectorAll('.blueprints-box .btn').forEach(b => b.classList.remove('active'));
             drawMapGrid();
         }
 
-        function backgroundSimTick() {
-            let f = 0, h = 0, l = 0, p = 0;
-            state.tiles.forEach((tile, index) => {
-                if (tile.type === 'farm') f++; if (tile.type === 'house') h++; if (tile.type === 'lab') l++;
-                if (tile.type === 'reactor') { tile.temp += 5 + (l * 0.4); p += 250; if (tile.temp >= 100) state.tiles[index] = { type: 'ash', temp: 0 }; }
+        function purchaseNewTerritoryPlots() {
+            if (state.cash >= 2000) {
+                state.cash -= 2000; currentTotalPlots += 7;
+                for (let i = 0; i < 7; i++) state.tiles.push({ type: 'empty', temp: 0, level: 1 });
+                document.getElementById('status-bar').innerText = "🗺️ Expansion complete! 7 new land plots added.";
+                drawMapGrid();
+            } else { alert("Land purchases require \$2,000."); }
+        }
+
+        function countAdjacentCoolers(idx) {
+            const r = Math.floor(idx / columns), c = idx % columns, rowsTotal = currentTotalPlots / columns;
+            const offsets = [ { r: r - 1, c: c }, { r: r + 1, c: c }, { r: r, c: c - 1 }, { r: r, c: c + 1 } ];
+            let count = 0;
+            offsets.forEach(pos => {
+                if (pos.r >= 0 && pos.r < rowsTotal && pos.c >= 0 && pos.c < columns) {
+                    if (state.tiles[pos.r * columns + pos.c].type === 'cooler') count++;
+                }
             });
-            state.power = p; state.science += l * 3;
-            if (state.pop < (12 + h * 15) && f > 0) state.pop += 2;
-            state.cash += (state.pop * 2) + (f * 25) + (state.power * 0.1);
+            return count;
+        }
+        function launchGlobalRadioStrike() {
+            if (state.cash >= 500) {
+                state.cash -= 500;
+                if (mqttClient) {
+                    mqttClient.publish(globalTopicChannel, JSON.stringify({ sender: "🚨 OUTPOST ALERT", textMessage: `💥 WARNING: ${myCallsign.toUpperCase()} HAS DEPLOYED AN ORBITAL GRID STRIKE!` }));
+                }
+                document.getElementById('status-bar').innerText = "⚔️ Signal deployed over global lines!";
+                drawMapGrid();
+            } else { alert("Needs \$500 to mobilize a strategic strike!"); }
+        }
+
+        function backgroundSimTick() {
+            let f = 0, h = 12, l = 0, p = 0;
+            state.tiles.forEach((tile, index) => {
+                if (tile.type === 'farm') f += tile.level; if (tile.type === 'house') h += tile.level * 15; if (tile.type === 'lab') l += tile.level;
+                if (tile.type === 'solar') p += 120;
+                if (tile.type === 'reactor') { 
+                    const coolers = countAdjacentCoolers(index);
+                    if (coolers > 0) { tile.temp += Math.max(0, 5 - (coolers * 2)) + (l * 0.1); p += 250; } 
+                    else { tile.temp += 10 + (l * 0.4); }
+                    if (tile.temp >= 100) state.tiles[index] = { type: 'ash', temp: 0, level: 1 }; 
+                }
+            });
+            state.power = p; state.science += l * 2;
+            if (state.pop < h && f > 0) state.pop += Math.min(4, f);
+            state.cash += Math.floor((state.pop * 2) + (f * 20) + (state.power * 0.12));
             drawMapGrid();
         }
 
-        function resetEntireSimulation() {
-            state.tiles = Array(35).fill(null).map(() => ({ type: 'empty', temp: 0 }));
-            state.pop = 12; state.cash = 250; state.science = 0; drawMapGrid();
+        function checkVictoryConditions() {
+            let builtItems = state.tiles.filter(t => t.type !== 'empty' && t.type !== 'ash');
+            if (builtItems.length >= 21) {
+                let allMaxed = builtItems.every(t => ['cooler', 'solar', 'reactor'].includes(t.type) || t.level === 3);
+                let hasPower = state.power >= 1000;
+                if (allMaxed && hasPower) {
+                    document.getElementById('winner-name').innerText = myCallsign.toUpperCase();
+                    document.getElementById('victory-screen').style.display = 'flex';
+                }
+            }
+        }
+
+        function saveCertificateToGallery() {
+            const element = document.getElementById('certificate-card');
+            html2canvas(element).then(canvas => {
+                const imageLink = document.createElement('a');
+                imageLink.download = `${myCallsign}_Victory_Certificate.png`;
+                imageLink.href = canvas.toDataURL('image/png');
+                imageLink.click();
+                alert("🏆 Certificate image downloaded successfully! Save it to your Photos app.");
+            });
         }
 
         function connectToChatNetwork() {
             myCallsign = document.getElementById('username-input').value.trim() || "Commander";
-            document.getElementById('username-prompt').style.display = 'none';
-            document.getElementById('active-chat-box').style.display = 'flex';
+            document.getElementById('username-prompt').style.display = 'none'; document.getElementById('active-chat-box').style.display = 'flex';
             mqttClient = mqtt.connect("wss://://hivemq.com");
             mqttClient.on('connect', () => { 
-                document.getElementById('network-status').innerText = "ONLINE";
-                document.getElementById('network-status').style.backgroundColor = "#22c55e";
+                document.getElementById('network-status').innerText = "ONLINE"; document.getElementById('network-status').style.backgroundColor = "#22c55e";
                 mqttClient.subscribe(globalTopicChannel); 
             });
             mqttClient.on('message', (topic, payload) => {
-                const data = JSON.parse(payload.toString());
-                displayIncomingMessage(data.sender, data.textMessage);
+                const data = JSON.parse(payload.toString()); displayIncomingMessage(data.sender, data.textMessage);
             });
         }
 
-        function sendBroadcastMessage() {
-            const input = document.getElementById('chat-input');
-            if (!input.value.trim() || !mqttClient) return;
+        function sendBroadcastMessage(e) {
+            if (e) e.preventDefault(); const input = document.getElementById('chat-input'); if (!input.value.trim() || !mqttClient) return;
             mqttClient.publish(globalTopicChannel, JSON.stringify({ sender: myCallsign, textMessage: input.value.trim() }));
-            input.value = '';
+            input.value = ''; input.focus();
         }
 
         function displayIncomingMessage(sender, text) {
-            const box = document.getElementById('chat-messages');
-            const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+            const box = document.getElementById('chat-messages'); const bubble = document.createElement('div'); bubble.className = 'msg-bubble';
+            if (sender.includes("🚨")) { bubble.classList.add('strike-alert'); }
             bubble.innerHTML = `<div class="msg-user">${sender}</div>${text}`;
             box.appendChild(bubble); box.scrollTop = box.scrollHeight;
         }
 
-        function handleChatKey(e) { if (e.key === 'Enter') sendBroadcastMessage(); }
-
-        function run30TimesTest() {
-            if (!mqttClient) return alert("Connect first!");
-            let count = 1;
-            const timer = setInterval(() => {
-                mqttClient.publish(globalTopicChannel, JSON.stringify({ sender: "🤖 Test_Bot", textMessage: `[Packet ${count}/30] System Connection Validated! ✅` }));
-                if (++count > 30) clearInterval(timer);
-            }, 150);
-        }
-
+        function handleChatKey(e) { if (e.key === 'Enter') sendBroadcastMessage(e); }
         window.onload = () => { drawMapGrid(); setInterval(backgroundSimTick, 1000); };
     </script>
 </body>
