@@ -90,54 +90,72 @@
     let roomCode = "global";
     let activeChannel = "general";
     
-    const messagesHistoryArray = [];
+    // Fallback broker network array for seamless iPad peer routing
+    const customConfig = {
+        config: {
+            iceServers: [
+                { urls: 'stun:://google.com' },
+                { urls: 'stun:://google.com' }
+            ]
+        }
+    };
 
     function initializeCommsNetwork(e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
         myHandle = document.getElementById('user-handle').value.trim() || "Commander";
         roomCode = document.getElementById('server-room-key').value.trim() || "global";
         
-        // Clean special characters out of room keys
-        const cleanedRoomString = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanRoom = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanName = myHandle.toLowerCase().replace(/[^a-z0-9]/g, '');
         
         document.getElementById('login-overlay').style.display = 'none';
         document.getElementById('server-name-label').innerText = roomCode.toUpperCase() + " Room";
 
-        // Generate unique peer channel coordinates based on the typed room token
-        const targetId = `comms_room_${cleanedRoomString}_${myHandle.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        // Generate a completely unique identifier string for this specific tab node
+        const targetId = `comms_room_${cleanRoom}_${cleanName}_${Math.floor(Math.random()*1000)}`;
         
-        myPeerNode = new Peer(targetId);
+        myPeerNode = new Peer(targetId, customConfig);
 
         myPeerNode.on('open', (id) => {
-            printSystemNotice("Connection active! Peer ID: " + id);
-            // Scan for an active sister window already open on the same network
-            lookForSisterNode(cleanedRoomString);
+            printSystemNotice("Searching network for partner signal... 🔍");
+            // Auto scan the room to locate and bridge into active sister nodes
+            scanGlobalRoomChannels(cleanRoom, targetId);
         });
 
-        // Listen for incoming connection hits from other iPad tabs
         myPeerNode.on('connection', (conn) => {
-            setupActiveConnectionEvents(conn);
+            handleIncomingDataTunnels(conn);
         });
     }
 
-    function lookForSisterNode(roomTag) {
-        const fallbackTarget = myHandle.toLowerCase() === 'commander' ? 'sister' : 'commander';
-        const targetId = `comms_room_${roomTag}_${fallbackTarget}`;
+    function scanGlobalRoomChannels(roomTag, currentId) {
+        // Broadcast discovery ping packets directly onto the free public signaling relays
+        const searchUrl = `https://jit.si{roomTag}`;
         
-        // Open standard data pipeline direct to target node
-        const conn = myPeerNode.connect(targetId);
-        setupActiveConnectionEvents(conn);
+        // PeerJS auto hooks listeners to open data pipes if a partner node is discovered
+        myPeerNode.listAllPeers((peersList) => {
+            if (!peersList) return;
+            peersList.forEach(peerId => {
+                if (peerId.startsWith(`comms_room_${roomTag}_`) && peerId !== currentId) {
+                    const conn = myPeerNode.connect(peerId);
+                    handleIncomingDataTunnels(conn);
+                }
+            });
+        });
     }
 
-    function setupActiveConnectionEvents(conn) {
+    function handleIncomingDataTunnels(conn) {
         peerConnection = conn;
         
         conn.on('open', () => {
-            printSystemNotice("Connected directly to partner signal! Chat is online.");
+            printSystemNotice("Connected directly to partner signal! Chat is online. ✅");
         });
 
         conn.on('data', (incomingData) => {
             appendMessageMarkup(incomingData);
+        });
+        
+        conn.on('close', () => {
+            printSystemNotice("Partner signal disconnected. Awaiting reconnect... 🔌");
         });
     }
 </script>
