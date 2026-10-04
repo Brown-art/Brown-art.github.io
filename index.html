@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CommsCord - Secure Live Chat</title>
-    <!-- Pulled the global secure PubNub library to replace the broken server links -->
-    <script src="https://pubnub.com"></script>
+    <title>CommsCord - Peer Live Chat</title>
+    <!-- Serverless P2P library to bypass broken broker keys completely -->
+    <script src="https://unpkg.com"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
         body { background-color: #313338; color: #dbdee1; height: 100vh; display: flex; overflow: hidden; }
@@ -50,10 +50,10 @@
                 <input type="text" id="user-handle" value="Commander" class="login-field">
             </div>
             <div class="input-group">
-                <label>Private Server Password Key</label>
-                <input type="text" id="server-room-key" placeholder="Type any shared secret room word..." class="login-field">
+                <label>Private Room Name</label>
+                <input type="text" id="server-room-key" placeholder="Type a unique room name..." class="login-field">
             </div>
-            <button class="login-btn" onclick="initializeCommsNetwork(event)" ontouchstart="initializeCommsNetwork(event)">Join Server Frequencies</button>
+            <button class="login-btn" onclick="initializeCommsNetwork(event)" ontouchstart="initializeCommsNetwork(event)">Connect Room</button>
         </div>
     </div>
 
@@ -65,8 +65,6 @@
         <div class="server-header" id="server-name-label">Frontier Hub</div>
         <div class="channels-list">
             <div class="channel-item active" id="chan-general" onclick="switchActiveChannel('general')"><span class="channel-hash">#</span>general</div>
-            <div class="channel-item" id="chan-gaming" onclick="switchActiveChannel('gaming')"><span class="channel-hash">#</span>gaming</div>
-            <div class="channel-item" id="chan-strategy" onclick="switchActiveChannel('strategy')"><span class="channel-hash">#</span>strategy-room</div>
             <div class="channel-item" style="color: #23a55a; font-weight: bold;" onclick="startLiveWebcamCall()"><span class="channel-hash">🎥</span> Join Video Call</div>
         </div>
     </div>
@@ -86,80 +84,83 @@
     </div>
 </body>
 <script>
-    let pNubEngine = null;
+    let myPeerNode = null;
+    let peerConnection = null;
     let myHandle = "Commander";
     let roomCode = "global";
     let activeChannel = "general";
-    let baseChannelTopicPath = "";
     
-    const localizedChannelsCache = { 'general': [], 'gaming': [], 'strategy': [] };
+    const messagesHistoryArray = [];
 
     function initializeCommsNetwork(e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
         myHandle = document.getElementById('user-handle').value.trim() || "Commander";
         roomCode = document.getElementById('server-room-key').value.trim() || "global";
         
-        // Formats your room password key into a clean alpha numeric path
-        baseChannelTopicPath = `room_${btoa(roomCode).replace(/=/g, '').substring(0, 15)}`;
+        // Clean special characters out of room keys
+        const cleanedRoomString = roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
         
         document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('server-name-label').innerText = roomCode.toUpperCase() + " Server";
-        switchActiveChannel('general');
+        document.getElementById('server-name-label').innerText = roomCode.toUpperCase() + " Room";
 
-        // Bootstrapping out directly to corporate production keys
-        pNubEngine = new PubNub({
-            publishKey: 'pub-c-4b684b34-8c88-466d-96f3-f818cc65b6ff',
-            subscribeKey: 'sub-c-57270275-c0d1-432d-9486-ea5fb7be5df3',
-            userId: myHandle + '_' + Math.floor(Math.random() * 10000)
+        // Generate unique peer channel coordinates based on the typed room token
+        const targetId = `comms_room_${cleanedRoomString}_${myHandle.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+        
+        myPeerNode = new Peer(targetId);
+
+        myPeerNode.on('open', (id) => {
+            printSystemNotice("Connection active! Peer ID: " + id);
+            // Scan for an active sister window already open on the same network
+            lookForSisterNode(cleanedRoomString);
         });
 
-        // Safe internet handshake packet listeners
-        pNubEngine.addListener({
-            message: function(event) {
-                const incomingData = event.message;
-                const channelName = event.channel.replace(baseChannelTopicPath + '_', '');
-                storeAndAppendMessage(channelName, incomingData);
-            }
-        });
-
-        // Link up ears cleanly to all text channel strings simultaneously
-        pNubEngine.subscribe({
-            channels: [
-                baseChannelTopicPath + '_general',
-                baseChannelTopicPath + '_gaming',
-                baseChannelTopicPath + '_strategy'
-            ]
+        // Listen for incoming connection hits from other iPad tabs
+        myPeerNode.on('connection', (conn) => {
+            setupActiveConnectionEvents(conn);
         });
     }
 
-    function switchActiveChannel(channelName) {
-        if (!localizedChannelsCache[channelName]) return;
-        document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
+    function lookForSisterNode(roomTag) {
+        const fallbackTarget = myHandle.toLowerCase() === 'commander' ? 'sister' : 'commander';
+        const targetId = `comms_room_${roomTag}_${fallbackTarget}`;
         
-        const destinationBtn = document.getElementById(`chan-${channelName}`);
-        if (destinationBtn) destinationBtn.classList.add('active');
+        // Open standard data pipeline direct to target node
+        const conn = myPeerNode.connect(targetId);
+        setupActiveConnectionEvents(conn);
+    }
 
-        activeChannel = channelName;
-        document.getElementById('active-header-title').innerText = channelName === 'strategy' ? 'strategy-room' : channelName;
-        document.getElementById('message-input').placeholder = `Message #${channelName}`;
+    function setupActiveConnectionEvents(conn) {
+        peerConnection = conn;
+        
+        conn.on('open', () => {
+            printSystemNotice("Connected directly to partner signal! Chat is online.");
+        });
 
-        const viewFrame = document.getElementById('chat-messages');
-        viewFrame.innerHTML = '';
-        localizedChannelsCache[channelName].forEach(msg => appendMessageMarkup(msg));
-        viewFrame.scrollTop = viewFrame.scrollHeight;
+        conn.on('data', (incomingData) => {
+            appendMessageMarkup(incomingData);
+        });
     }
 </script>
 <script>
-    function storeAndAppendMessage(channel, msgObj) {
-        if (localizedChannelsCache[channel]) {
-            localizedChannelsCache[channel].push(msgObj);
-            if (localizedChannelsCache[channel].length > 40) localizedChannelsCache[channel].shift();
-            if (channel === activeChannel) {
-                appendMessageMarkup(msgObj);
-                const box = document.getElementById('chat-messages');
-                box.scrollTop = box.scrollHeight;
-            }
+    function broadcastChannelPayload(e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        const field = document.getElementById('message-input');
+        const rawText = field.value.trim();
+        if (!rawText) return;
+
+        const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messagePacket = { user: myHandle, bodyText: rawText, timestamp: timeString };
+
+        // If active peer link is live, dispatch packet over data pipeline instantly
+        if (peerConnection && peerConnection.open) {
+            peerConnection.send(messagePacket);
         }
+        
+        // Print your own message locally onto your viewport frame
+        appendMessageMarkup(messagePacket);
+        
+        field.value = '';
+        setTimeout(() => { field.focus(); }, 40);
     }
 
     function appendMessageMarkup(msgData) {
@@ -180,26 +181,15 @@
         `;
         row.querySelector('.msg-body').appendChild(document.createTextNode(msgData.bodyText));
         container.appendChild(row);
+        container.scrollTop = container.scrollHeight;
     }
 
-    function broadcastChannelPayload(e) {
-        if (e) { e.preventDefault(); e.stopPropagation(); }
-        const field = document.getElementById('message-input');
-        const rawText = field.value.trim();
-        if (!rawText || !pNubEngine) return;
-
-        const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const messagePacket = { user: myHandle, bodyText: rawText, timestamp: timeString };
-
-        // Force publication packets right up to the encrypted corporate server arrays instantly
-        pNubEngine.publish({
-            channel: `${baseChannelTopicPath}_${activeChannel}`,
-            message: messagePacket
-        });
-        
-        field.value = '';
-        setTimeout(() => { field.focus(); }, 40);
+    function printSystemNotice(txtText) {
+        const msg = { user: "🔧 SYSTEM", bodyText: txtText, timestamp: "--:--" };
+        appendMessageMarkup(msg);
     }
+
+    function switchActiveChannel(cName) { return; } // Maintained layout parsing hooks
 
     function startLiveWebcamCall() {
         const secureRoomId = btoa(roomCode).replace(/=/g, '').substring(0, 12);
