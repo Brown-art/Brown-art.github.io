@@ -77,6 +77,8 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 #stop select{background:var(--bg4);color:var(--tx);border:0;border-radius:8px;padding:8px 10px;font-size:16px}
 #sgrid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-content:start}
 .sb{background:var(--bg2);border-radius:12px;padding:14px 8px;text-align:center;color:var(--tx);font-weight:600}
+.sb{position:relative}.cx{position:absolute;top:4px;right:8px;font-style:normal;color:var(--mut)}
+#cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;flex:none;max-height:32vh;overflow-y:auto}
 .sb:active{background:var(--acc)}.sb span{display:block;font-size:34px;margin-bottom:4px}
 @media(max-width:900px){#members{display:none}#channels{width:210px}}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
@@ -128,7 +130,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
     <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
     <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
     <div id="memeWrap"><div id="mtop"><input id="msearch" placeholder="Search memes…" autocomplete="off"><button id="mrand">🎲 Random 12</button><span id="mcount"></span><span id="mnote"></span></div><div id="mchips"></div><div id="mgrid"></div></div>
-    <div id="sndWrap"><div id="stop"><label><input type="checkbox" id="sall" checked> Play on everyone's device</label><label>Pitch <select id="spitch"><option value="0.6">Low</option><option value="1" selected>Normal</option><option value="1.6">High</option></select></label></div><div id="sgrid"></div></div>
+    <div id="sndWrap"><div id="stop"><label><input type="checkbox" id="sall" checked> Play on everyone's device</label><label>Pitch <select id="spitch"><option value="0.6">Low</option><option value="1" selected>Normal</option><option value="1.6">High</option></select></label><button id="sadd" class="chip on">➕ Add your own sound</button><input type="file" id="sfile" accept="audio/*" multiple hidden></div><div id="cgrid"></div><div id="sgrid"></div></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
   </main>
@@ -199,6 +201,15 @@ function sendRoster(){var d={t:"roster",list:S.roster};broadcast(d);renderRoster
 function onData(conn,d){
   if(!d||typeof d!=="object")return;
   if(d.t==="chess"){chessRecv(d);return}
+  if(d.t==="clip"){
+    var n2=Date.now();if(n2-lastSnd<300)return;lastSnd=n2;
+    var mt=String(d.mime||"").slice(0,40);
+    if(d.buf&&d.buf.byteLength<=1500000&&/^audio\//.test(mt)){
+      playBuf(d.buf);
+      if(S.isHost)broadcast({t:"clip",mime:mt,buf:d.buf},conn);
+    }
+    return;
+  }
   if(d.t==="snd"){
     var nw=Date.now();if(nw-lastSnd<120)return;lastSnd=nw;
     var pp=Math.min(2,Math.max(.4,Number(d.p)||1));
@@ -726,6 +737,50 @@ function playSnd(id,pm){
     g.appendChild(b);
   });
 })();
+
+/* ---------- Your own sounds (files you pick; saved on this iPad) ---------- */
+var CS=[],DB=null;
+function dbOpen(cb){
+  try{
+    var r=indexedDB.open("dcsounds",1);
+    r.onupgradeneeded=function(){r.result.createObjectStore("s",{keyPath:"id"})};
+    r.onsuccess=function(){DB=r.result;cb()};r.onerror=function(){cb()};
+  }catch(e){cb()}
+}
+function dbAll(cb){if(!DB){cb([]);return}try{var q=DB.transaction("s").objectStore("s").getAll();q.onsuccess=function(){cb(q.result||[])};q.onerror=function(){cb([])}}catch(e){cb([])}}
+function dbPut(o){if(!DB)return;try{DB.transaction("s","readwrite").objectStore("s").put(o)}catch(e){}}
+function dbDel(id){if(!DB)return;try{DB.transaction("s","readwrite").objectStore("s").delete(id)}catch(e){}}
+function playBlob(b){var u=URL.createObjectURL(b),a=new Audio(u);a.onended=function(){URL.revokeObjectURL(u)};a.play().catch(function(){})}
+function playBuf(buf){
+  var a=ac();if(!a)return;
+  var ab=buf instanceof ArrayBuffer?buf:buf.buffer.slice(buf.byteOffset,buf.byteOffset+buf.byteLength);
+  a.decodeAudioData(ab,function(d){var n=a.createBufferSource();n.buffer=d;n.connect(a.destination);n.start()},function(){});
+}
+function drawCustom(){
+  var g=$("cgrid");g.textContent="";
+  CS.forEach(function(c){
+    var b=document.createElement("button");b.className="sb";
+    var e=document.createElement("span");e.textContent="🎵";b.appendChild(e);b.appendChild(document.createTextNode(c.name));
+    var x=document.createElement("em");x.className="cx";x.textContent="✕";
+    x.onclick=function(ev){ev.stopPropagation();if(confirm("Delete "+c.name+"?")){dbDel(c.id);CS=CS.filter(function(z){return z!==c});drawCustom()}};
+    b.appendChild(x);
+    b.onclick=function(){
+      playBlob(c.blob);
+      if($("sall").checked&&S.peer&&c.blob.size<=1500000)c.blob.arrayBuffer().then(function(buf){broadcast({t:"clip",mime:c.blob.type||"audio/mpeg",buf:buf})});
+    };
+    g.appendChild(b);
+  });
+}
+$("sadd").onclick=function(){$("sfile").click()};
+$("sfile").onchange=function(){
+  [].forEach.call(this.files,function(f){
+    if(f.size>3000000){alert(f.name+" is over 3 MB. Use a shorter clip.");return}
+    var c={id:Date.now()+"-"+Math.random().toString(36).slice(2,7),name:f.name.replace(/\.[^.]+$/,"").slice(0,24),blob:f};
+    CS.push(c);dbPut(c);
+  });
+  this.value="";drawCustom();
+};
+dbOpen(function(){dbAll(function(a){CS=a;drawCustom()})});
 
 /* ---------- Wiring ---------- */
 tap($("host"),function(){start(true)});
