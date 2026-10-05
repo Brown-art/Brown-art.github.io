@@ -61,17 +61,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 #gmenu button{background:var(--acc);color:#fff;border-radius:8px;padding:10px 16px;font-weight:600}
 #gscore{font-weight:600;text-align:center}
 #gc{width:min(62vh,92%,420px);aspect-ratio:1;background:var(--bg1);border-radius:8px;touch-action:none}
-#memeWrap{display:none;flex:1;flex-direction:column;gap:10px;padding:12px 16px;min-height:0}
-#mtop{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#msearch{flex:1;min-width:140px;background:var(--bg4);border:0;border-radius:8px;padding:10px 12px;color:var(--tx);font-size:16px;outline:0}
-#mrand{background:var(--acc);color:#fff;border-radius:8px;padding:10px 14px;font-weight:600}
-#mcount{color:var(--mut);font-size:13px}#mnote{color:var(--grn);font-weight:600;font-size:13px}
-#mchips{display:flex;gap:6px;overflow-x:auto;flex:none}
 .chip{flex:none;background:var(--bg4);color:var(--tx);border-radius:16px;padding:6px 14px}.chip.on{background:var(--acc);color:#fff}
-#mgrid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;align-content:start}
-.mc{background:var(--bg2);border-radius:10px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:6px;justify-content:space-between;min-height:150px;cursor:pointer}
-.mc:active{background:var(--bg4)}.me{font-size:44px;line-height:1.1}
-.mt{font:900 16px Impact,"Arial Black",sans-serif;color:#fff;text-transform:uppercase;white-space:pre-line;overflow-wrap:anywhere;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
 #sndWrap{display:none;flex:1;flex-direction:column;gap:10px;padding:12px 16px;min-height:0}
 #stop{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--mut)}
 #stop select{background:var(--bg4);color:var(--tx);border:0;border-radius:8px;padding:8px 10px;font-size:16px}
@@ -119,7 +109,6 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
       <button class="ch" data-c="chess"><span>♟️</span> chess</button>
       <button class="ch" data-c="ai"><span>🤖</span> ai-assistant</button>
       <button class="ch" data-c="games"><span>🎮</span> games</button>
-      <button class="ch" data-c="memes"><span>😂</span> meme-library</button>
       <button class="ch" data-c="sounds"><span>🔊</span> soundboard</button>
       <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
@@ -128,8 +117,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
   <main id="main">
     <div class="head" id="title"># general</div>
     <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
-    <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
-    <div id="memeWrap"><div id="mtop"><input id="msearch" placeholder="Search memes…" autocomplete="off"><button id="mrand">🎲 Random 12</button><span id="mcount"></span><span id="mnote"></span></div><div id="mchips"></div><div id="mgrid"></div></div>
+    <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button><button data-g="clash">⚔️ Stick Clash</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
     <div id="sndWrap"><div id="stop"><label><input type="checkbox" id="sall" checked> Play on everyone's device</label><label>Pitch <select id="spitch"><option value="0.6">Low</option><option value="1" selected>Normal</option><option value="1.6">High</option></select></label><button id="sadd" class="chip on">➕ Add your own sound</button><input type="file" id="sfile" accept="audio/*" multiple hidden></div><div id="cgrid"></div><div id="sgrid"></div></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
@@ -201,6 +189,7 @@ function sendRoster(){var d={t:"roster",list:S.roster};broadcast(d);renderRoster
 function onData(conn,d){
   if(!d||typeof d!=="object")return;
   if(d.t==="chess"){chessRecv(d);return}
+  if(d.t==="cl"){if(GM.msg)GM.msg(d);return}
   if(d.t==="clip"){
     var n2=Date.now();if(n2-lastSnd<300)return;lastSnd=n2;
     var mt=String(d.mime||"").slice(0,40);
@@ -352,10 +341,9 @@ function chessRecv(d){
 }
 function panel(ch){
   $("chessWrap").style.display=ch==="chess"?"flex":"none";
-  var gm=ch==="games",mm=ch==="memes",sm=ch==="sounds";
-  $("gamesWrap").style.display=gm?"flex":"none";$("memeWrap").style.display=mm?"flex":"none";$("sndWrap").style.display=sm?"flex":"none";
-  $("msgs").style.display=(gm||mm||sm)?"none":"";$("bar").style.display=(gm||mm||sm)?"none":"";
-  if(mm)memeDraw();
+  var gm=ch==="games",sm=ch==="sounds";
+  $("gamesWrap").style.display=gm?"flex":"none";$("sndWrap").style.display=sm?"flex":"none";
+  $("msgs").style.display=(gm||sm)?"none":"";$("bar").style.display=(gm||sm)?"none":"";
   if(!gm&&GM.stop){GM.stop();GM.stop=null}
   if(gm){$("gscore").textContent="Pick a game above.";var cx=$("gc").getContext("2d");cx.fillStyle="#1e1f22";cx.fillRect(0,0,360,360)}
   if(ch!=="chess")return;
@@ -382,7 +370,7 @@ function askAI(text){
 }
 
 /* ---------- Mini games (swipe, tap, or arrow keys) ---------- */
-var GM={stop:null};
+var GM={stop:null,msg:null};
 function swipes(c,cb){
   var sx=0,sy=0;
   c.ontouchstart=function(e){var t=e.touches[0];sx=t.clientX;sy=t.clientY;e.preventDefault()};
@@ -396,7 +384,7 @@ function swipes(c,cb){
 function gstart(g){
   if(GM.stop)GM.stop();
   var c=$("gc"),x=c.getContext("2d"),sc=$("gscore");
-  ({snake:snake,"2048":g2048,flap:flap})[g](c,x,sc);
+  ({snake:snake,"2048":g2048,flap:flap,clash:clash})[g](c,x,sc);
 }
 function snake(c,x,sc){
   var N=18,Z=20,s,d,nd,f,pts,over,t;
@@ -482,183 +470,103 @@ function flap(c,x,sc){
   init();t=setInterval(step,16);
   GM.stop=function(){clearInterval(t);off()};
 }
-document.querySelectorAll("#gmenu button").forEach(function(b){tap(b,function(){gstart(b.dataset.g)})});
-
-/* ---------- Meme library (tap a meme to post it to #general) ---------- */
-var MEMES=(function(){
-  var o=[];
-  [["School",`📚|When the teacher says "pop quiz"|my brain: error 404
-😴|Alarm at 6:30 AM|my bed: stay
-📝|Homework due tomorrow|me at 11:59 PM: let's begin
-🎒|Backpack on Monday|backpack on Friday: empty and free
-🕐|Looking at the clock|only 2 minutes passed
-🍕|Pizza day at lunch|best day of the school year
-📱|Phone buzzes in class|stay calm, do not look
-🤓|Teacher: any questions?|the whole class: silence
-✏️|Borrowed a pencil once|never saw it again
-📖|"This test is easy"|test: first question
-🚌|Missed the bus|and my whole life flashed by
-🏫|Snow day announced|instant happiness
-👀|Copying homework|"change a few words" - genius
-🧮|Math class|when will I ever use this? Always.
-🔔|Bell rings|everyone leaves before the teacher finishes
-🥱|Group project|one person does everything
-🎤|Presentation day|my knees: shaking
-📅|Weekend|gone in 3 seconds
-🧠|Studying for 5 minutes|my brain: that's enough
-🍎|Teacher's pet|knows all the answers`],
-  ["Gaming",`🎮|One more game|it's 3 AM
-🕹️|Lag spikes|right when I was winning
-🏆|Won one match|I'm basically a pro
-💀|Dying in the first minute|"Lag"
-🎧|Gaming headset on|world off
-🔋|Controller at 1% battery|the final boss
-👾|Easy mode|hard mode: pain
-🧩|Loot found|inventory full
-😤|Lost again|"my teammates were bad"
-🚀|New update|everything changed
-🐢|Slow Wi-Fi|downloading since Tuesday
-🎯|Missed every shot|aimbot? never heard of it
-🛡️|Playing defense|nobody noticed
-🗺️|Followed the map|still lost
-🔥|Speedrunning homework|new world record
-🤝|Co-op mode|one carries, one watches
-💎|Rare drop|my luck finally returned
-🧱|Building a base|enemy: demolition
-⌨️|Rage quit|reinstalled 2 minutes later
-🎲|Roll the dice|critical failure`],
-  ["Food",`🍕|Pineapple on pizza|the internet: war
-🌮|Taco Tuesday|best day of the week
-🍔|Diet starts Monday|burger on Sunday
-🍟|Fries in the bag|always shared, never fairly
-🍦|Ice cream falls|a moment of silence
-🥞|Pancakes at midnight|a good decision
-🍜|Instant noodles|chef level: expert
-🧀|Cheese|solves everything
-🍫|Hidden snack stash|found by little brother
-🥤|Soda fizz|exploded everywhere
-🍩|Last donut|everyone pretends not to look
-🥑|Avocado ripe for 4 seconds|then brown
-🍪|Cookies are done|burnt on one side again
-🍿|Movie night|popcorn gone in 10 minutes
-🥗|Eating a salad|and telling everyone about it
-🍳|Cooking an egg|shell in the pan
-🧃|Juice box|tiny straw, big joy
-🍇|Grapes in the freezer|elite snack
-🌭|Sausage roll|no regrets
-🍰|Birthday cake|best part: the corner piece`],
-  ["Pets",`🐶|Dog hears "walk"|instant fireworks
-🐱|Cat knocks a cup off the table|eye contact
-🐹|Hamster at 3 AM|the wheel never stops
-🐟|Fish stare|judging my life choices
-🦜|Parrot repeats a bad word|in front of grandma
-🐕|Dog waits at the door|best friend energy
-😺|Cat in a box|if it fits, it sits
-🐰|Bunny zoomies|physics has left the chat
-🐢|Turtle|no hurry, no worries
-🐾|Muddy paw prints|on the clean floor
-🐦|Birds at 5 AM|why so loud
-🦴|Found a bone|buried it again
-🐈|Cat ignores me all day|then sits on my keyboard
-🐩|Fresh haircut|dog thinks it's a model
-🐠|Feeding the fish|they act like they're starving
-🦮|Dog's head out of the car window|pure joy
-🐁|Mouse in the house|the cat took the day off
-🐴|Horse|neigh
-🐸|Frog|ribbit-ing performance
-🦎|Lizard on the wall|watching you`],
-  ["Tech",`💻|Computer freezes|"just one second"
-🔌|Charger not working|only the one I have
-📶|Wi-Fi: 1 bar|loading since 2019
-🔄|Turn it off and on again|fixes everything
-🖱️|Click, click, click|nothing happens
-🔒|Password needs a capital, number, symbol|I forgot it immediately
-📲|Update available|restart in 3 hours
-🐞|Fixed one bug|made three more
-💾|Forgot to save|the dark times
-🤖|AI|"I'm just getting started"
-📧|Reply all|a big mistake
-🖥️|Tab count: 47|I am organized
-🔍|Searching for the answer|the answer: page 12
-🎵|Headphones tangled|from nothing
-📸|Camera roll|8,000 photos of nothing
-🧑‍💻|It works on my machine|famous last words
-🌐|No internet|dinosaur mode
-⏳|Download: 99%|stays at 99%
-🛠️|Fixed it with tape|engineering excellence
-🔊|Volume at 100%|neighbors know my taste`],
-  ["Banana",`🍌|I am a banana|peel me a story
-🍌|Banana split|best decision of my life
-🍌|Banana peel on the floor|physics: activated
-🍌|Banana phone|ring ring ring
-🍌|Ripe at 2 PM|brown by 2:05
-🍌|Monkey sees a banana|say no more
-🍌|One banana|the perfect snack`],
-  ["Life",`☕|Before coffee|zombie mode
-🛏️|Just five more minutes|three hours later
-🌧️|Forgot an umbrella|of course it rains
-💸|Pay day|goodbye money
-🧦|Lost sock|the washing machine takes a tax
-🚪|Walked into a room|forgot why
-🕰️|Adulting|too much, too soon
-🎉|Plans canceled|best feeling ever
-🧹|Cleaning my room|found 3 old snacks
-🍂|Autumn|sweaters and snacks
-🌞|Sunday afternoon|the Monday feeling starts
-🚿|Shower thoughts|brilliant ideas, zero notes
-📦|Online order arrived|not what I ordered
-🧊|Cold side of the pillow|elite
-😅|"I'll do it later"|later never came
-🪴|Plant|still alive, somehow
-🛒|Went to the store for milk|came home with 12 other things
-⏰|Snooze|a dangerous friend
-🎈|Birthday|another year of snacks
-💤|Early night|stayed up until 2 AM anyway`]
-  ].forEach(function(c){c[1].split("\n").forEach(function(l){var q=l.split("|");o.push({c:c[0],e:q[0],t:q[1],b:q[2]||""})})});
-  return o;
-})();
-var GEN=[],mcat="All",mq="";
-function pick(a){return a[Math.random()*a.length|0]}
-function postGeneral(text){
-  if(!S.peer)return;
-  var m={t:"msg",ch:"general",user:S.name,text:text.slice(0,2000),ts:Date.now()};
-  addMsg("general",m);
-  if(S.isHost)broadcast(m);else if(S.hostConn&&S.hostConn.open)S.hostConn.send(m);
-}
-function memeDraw(){
-  var g=$("mgrid");g.textContent="";
-  var all=GEN.concat(MEMES).filter(function(m){return(mcat==="All"||m.c===mcat)&&(m.t+" "+m.b).toLowerCase().indexOf(mq)>=0});
-  $("mcount").textContent=all.length+" memes";
-  all.forEach(function(m){
-    var d=document.createElement("div");d.className="mc";
-    [m.t,m.e,m.b].forEach(function(x,i){if(!x)return;var e=document.createElement("div");e.className=i===1?"me":"mt";e.textContent=x;d.appendChild(e)});
-    d.onclick=function(){postGeneral(m.e+" "+m.t.replace(/\n/g," / ")+(m.b?" \u2014 "+m.b:""));var n=$("mnote");n.textContent="Sent to #general \u2705";setTimeout(function(){n.textContent=""},1500)};
-    g.appendChild(d);
-  });
-}
-function memeGen(){
-  var A=["doing homework at midnight","forgetting my password","looking for my phone while holding it","saying one more game","reading the group chat","opening the fridge again","pretending to listen in class","cleaning my room for 5 minutes","finishing the snack in one go","taking 100 photos of a sandwich","waiting for the Wi-Fi","hiding from a pop quiz"];
-  var B=["My brain","My wallet","My cat","My teacher","Future me","The group chat","My alarm clock","My snacks","My keyboard"];
-  var E=["😂","🤣","😎","🥲","🙃","😭","🤯","🫠","😬","🤔"];
-  for(var i=0;i<12;i++){
-    var a=pick(A),a2=pick(A);
-    var t=[ "Nobody:\nMe: "+a, "POV: "+a, a+" vs "+a2, "Me: "+a+"\nAlso me: "+a2, pick(B)+" when I'm "+a ][Math.random()*5|0];
-    GEN.unshift({c:"Random",e:pick(E),t:t,b:""});
+function clash(c,x,sc){
+  /* Original stickman lane battle. Host runs the match; a connected friend plays red from their own device. */
+  var T={s:{n:"Spearman",c:25,hp:60,d:8,r:26,v:.55,cd:28,z:1},a:{n:"Slinger",c:40,hp:35,d:6,r:95,v:.4,cd:42,z:1},g:{n:"Brute",c:90,hp:240,d:22,r:22,v:.3,cd:48,z:1.6}};
+  var K=["s","a","g"],host=S.isHost,me=host?0:1;
+  var U,g,bh,tick,over,nid,t,got=host,mode="";
+  function online(){return host&&S.conns.length>0}
+  function init(){U=[];g=[60,60];bh=[400,400];tick=0;over=-1;nid=0}
+  function add(side,k){U.push({k:k,id:++nid,side:side,x:side?326:34,hp:T[k].hp,max:T[k].hp,cd:0})}
+  function spawn(side,k){
+    if(!T[k]||over>=0||g[side]<T[k].c)return;
+    if(U.filter(function(u){return u.side===side}).length>=25)return;
+    g[side]-=T[k].c;add(side,k);
   }
-  GEN.length=Math.min(GEN.length,60);mcat="All";
-  [].forEach.call($("mchips").children,function(x,i){x.classList.toggle("on",i===0)});
-  memeDraw();
+  function fig(u){
+    var d=T[u.k],z=d.z,gy=240,px=me?360-u.x:u.x,dir=(u.side?-1:1)*(me?-1:1),w=Math.sin(u.x*.3+u.id*1.7)*4*z;
+    var col=u.side===me?"#7289ff":"#f23f42";
+    x.strokeStyle=col;x.fillStyle=col;x.lineWidth=2*Math.max(1,z*.8);x.lineCap="round";
+    x.beginPath();x.arc(px,gy-24*z,5*z,0,7);
+    x.moveTo(px,gy-19*z);x.lineTo(px,gy-8*z);
+    x.moveTo(px,gy-8*z);x.lineTo(px-w,gy);x.moveTo(px,gy-8*z);x.lineTo(px+w,gy);
+    x.moveTo(px,gy-16*z);x.lineTo(px+dir*8*z,gy-14*z);
+    if(u.k==="s"){x.moveTo(px+dir*4*z,gy-14*z);x.lineTo(px+dir*28*z,gy-14*z)}
+    else if(u.k==="a"){x.moveTo(px+dir*8*z,gy-14*z);x.lineTo(px+dir*12*z,gy-22*z);x.moveTo(px+dir*14*z,gy-24*z);x.arc(px+dir*14*z,gy-24*z,2,0,7)}
+    else{x.moveTo(px+dir*8*z,gy-14*z);x.lineTo(px+dir*20*z,gy-34*z)}
+    x.stroke();
+    if(u.k==="g")x.fillRect(px+dir*20*z-5,gy-40*z,10,9);
+    x.fillStyle="#23a55a";x.fillRect(px-8,gy-34*z,16*Math.max(0,u.hp)/u.max,3);
+  }
+  function draw(){
+    x.fillStyle="#1e1f22";x.fillRect(0,0,360,360);
+    x.fillStyle="#383a40";x.fillRect(0,240,360,4);
+    x.fillStyle="#5865f2";x.fillRect(6,170,28,70);x.fillStyle="#f23f42";x.fillRect(326,170,28,70);
+    x.fillStyle="#23a55a";x.fillRect(4,160,32*Math.max(0,bh[me])/400,5);x.fillRect(324,160,32*Math.max(0,bh[1-me])/400,5);
+    U.forEach(fig);
+    x.textAlign="center";x.textBaseline="middle";x.fillStyle="#f0b232";x.font="bold 15px sans-serif";
+    x.fillText("Gold: "+Math.floor(g[me]),180,30);
+    K.forEach(function(k,i){
+      var d=T[k],ok=g[me]>=d.c;
+      x.fillStyle=ok?"#5865f2":"#383a40";x.fillRect(i*120+6,292,108,56);
+      x.fillStyle=ok?"#fff":"#949ba4";x.font="bold 14px sans-serif";
+      x.fillText(d.n,i*120+60,310);x.fillText(d.c+" gold",i*120+60,330);
+    });
+    if(!got){x.fillStyle="#fff";x.font="14px sans-serif";x.fillText("Waiting for the host to open Stick Clash...",180,120)}
+    if(over>=0){x.fillStyle="rgba(0,0,0,.6)";x.fillRect(0,100,360,70);x.fillStyle="#fff";x.font="bold 26px sans-serif";x.fillText(over===me?"You win!":"You lose",180,135)}
+  }
+  function step(){
+    if(host&&over<0){
+      tick++;g[0]=Math.min(300,g[0]+.14);g[1]=Math.min(300,g[1]+.14);
+      var m=online()?"Vs friend: you are blue":"Solo vs AI";
+      if(m!==mode){mode=m;sc.textContent=m+". Tap a button to send stickmen!"}
+      if(!online()&&tick%Math.max(50,110-(tick/40|0))===0){var r=Math.random();add(1,r<.5?"s":r<.85?"a":"g")}
+      U.forEach(function(u){
+        var d=T[u.k],dir=u.side?-1:1,tg=null,best=1e9;
+        U.forEach(function(o){if(o.side!==u.side){var dist=(o.x-u.x)*dir;if(dist>-5&&dist<best){best=dist;tg=o}}});
+        if(u.cd>0)u.cd--;
+        var bx=u.side?34:326;
+        if(tg&&best<=d.r){if(!u.cd){tg.hp-=d.d;u.cd=d.cd}}
+        else if((bx-u.x)*dir<=d.r){if(!u.cd){bh[1-u.side]-=d.d;u.cd=d.cd}}
+        else u.x+=dir*d.v;
+      });
+      U=U.filter(function(u){return u.hp>0});
+      if(bh[1]<=0)over=0;else if(bh[0]<=0)over=1;
+      if(over>=0)sc.textContent=(over===me?"You win!":"You lose")+" Tap to play again";
+    }
+    if(host&&online()&&(tick%3===0||over>=0)){
+      broadcast({t:"cl",k:"st",U:U.map(function(u){return[K.indexOf(u.k),u.id,Math.round(u.x*10)/10,u.hp,u.side]}),g:[Math.floor(g[0]),Math.floor(g[1])],b:[bh[0],bh[1]],o:over});
+    }
+    draw();
+  }
+  function hit(cx,cy){
+    var r=c.getBoundingClientRect(),px=(cx-r.left)*360/r.width,py=(cy-r.top)*360/r.height;
+    if(over>=0){if(host)init();else if(S.hostConn&&S.hostConn.open)S.hostConn.send({t:"cl",k:"again"});return}
+    if(py<285)return;
+    var k=K[Math.floor(px/120)];if(!k)return;
+    if(host)spawn(0,k);
+    else if(got&&g[1]>=T[k].c&&S.hostConn&&S.hostConn.open)S.hostConn.send({t:"cl",k:"spawn",u:k});
+  }
+  GM.msg=function(d){
+    if(host){
+      if(d.k==="spawn"&&online()&&K.indexOf(d.u)>=0)spawn(1,d.u);
+      else if(d.k==="again"&&over>=0)init();
+    }else if(d.k==="st"&&Array.isArray(d.U)&&Array.isArray(d.g)&&Array.isArray(d.b)){
+      U=[];
+      d.U.slice(0,60).forEach(function(a){var k=K[a[0]];if(k)U.push({k:k,id:Number(a[1])||0,x:Number(a[2])||0,hp:Number(a[3])||0,side:a[4]?1:0,max:T[k].hp})});
+      g=[Number(d.g[0])||0,Number(d.g[1])||0];bh=[Number(d.b[0])||0,Number(d.b[1])||0];
+      var o=Number(d.o);over=(o===0||o===1)?o:-1;got=true;
+    }
+  };
+  c.ontouchstart=function(e){e.preventDefault();var q=e.touches[0];hit(q.clientX,q.clientY)};
+  c.ontouchend=function(e){e.preventDefault()};
+  c.onclick=function(e){hit(e.clientX,e.clientY)};
+  init();
+  sc.textContent=host?"Open this on both iPads to play each other, or play solo vs AI.":"You are blue on the left. Tap a button to send stickmen!";
+  t=setInterval(step,33);
+  GM.stop=function(){clearInterval(t);c.ontouchstart=c.ontouchend=c.onclick=null;GM.msg=null};
 }
-(function(){
-  var c=$("mchips");
-  ["All","Banana","School","Gaming","Food","Pets","Tech","Life"].forEach(function(n,i){
-    var b=document.createElement("button");b.textContent=n;b.className="chip"+(i?"":" on");
-    b.onclick=function(){mcat=n;[].forEach.call(c.children,function(x){x.classList.toggle("on",x===b)});memeDraw()};
-    c.appendChild(b);
-  });
-  $("msearch").oninput=function(){mq=this.value.toLowerCase().trim();memeDraw()};
-  $("mrand").onclick=memeGen;
-})();
+document.querySelectorAll("#gmenu button").forEach(function(b){tap(b,function(){gstart(b.dataset.g)})});
 
 /* ---------- Soundboard (all sounds are synthesized, no audio files) ---------- */
 var AC=null,PM=1,lastSnd=0;
