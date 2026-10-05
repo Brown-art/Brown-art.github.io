@@ -72,6 +72,12 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
 .mc{background:var(--bg2);border-radius:10px;padding:12px;text-align:center;display:flex;flex-direction:column;gap:6px;justify-content:space-between;min-height:150px;cursor:pointer}
 .mc:active{background:var(--bg4)}.me{font-size:44px;line-height:1.1}
 .mt{font:900 16px Impact,"Arial Black",sans-serif;color:#fff;text-transform:uppercase;white-space:pre-line;overflow-wrap:anywhere;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
+#sndWrap{display:none;flex:1;flex-direction:column;gap:10px;padding:12px 16px;min-height:0}
+#stop{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--mut)}
+#stop select{background:var(--bg4);color:var(--tx);border:0;border-radius:8px;padding:8px 10px;font-size:16px}
+#sgrid{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;align-content:start}
+.sb{background:var(--bg2);border-radius:12px;padding:14px 8px;text-align:center;color:var(--tx);font-weight:600}
+.sb:active{background:var(--acc)}.sb span{display:block;font-size:34px;margin-bottom:4px}
 @media(max-width:900px){#members{display:none}#channels{width:210px}}
 #login{position:fixed;inset:0;background:rgba(0,0,0,.8);display:grid;place-items:center;z-index:10;padding:16px}
 .card{background:var(--bg3);border-radius:12px;padding:28px;width:100%;max-width:420px;box-shadow:0 8px 40px #0008}
@@ -112,6 +118,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
       <button class="ch" data-c="ai"><span>🤖</span> ai-assistant</button>
       <button class="ch" data-c="games"><span>🎮</span> games</button>
       <button class="ch" data-c="memes"><span>😂</span> meme-library</button>
+      <button class="ch" data-c="sounds"><span>🔊</span> soundboard</button>
       <button class="ch video" id="video">🎥 Join Video Call</button>
     </div>
     <div id="me"><div class="av" id="meav">?<span class="dot"></span></div><div><div id="mename">—</div><div id="status">Offline</div></div></div>
@@ -121,6 +128,7 @@ button{font:inherit;color:inherit;border:0;cursor:pointer;touch-action:manipulat
     <div id="chessWrap"><div id="board"></div><div><div id="cstatus"></div><button id="cnew">New game</button></div></div>
     <div id="gamesWrap"><div id="gmenu"><button data-g="snake">🐍 Snake</button><button data-g="2048">🔢 2048</button><button data-g="flap">🐦 Flap</button></div><div id="gscore"></div><canvas id="gc" width="360" height="360"></canvas></div>
     <div id="memeWrap"><div id="mtop"><input id="msearch" placeholder="Search memes…" autocomplete="off"><button id="mrand">🎲 Random 12</button><span id="mcount"></span><span id="mnote"></span></div><div id="mchips"></div><div id="mgrid"></div></div>
+    <div id="sndWrap"><div id="stop"><label><input type="checkbox" id="sall" checked> Play on everyone's device</label><label>Pitch <select id="spitch"><option value="0.6">Low</option><option value="1" selected>Normal</option><option value="1.6">High</option></select></label></div><div id="sgrid"></div></div>
     <div id="msgs"></div>
     <div id="bar"><input id="inp" placeholder="Message #general" autocomplete="off" enterkeyhint="send"><button id="send">Send</button></div>
   </main>
@@ -191,6 +199,13 @@ function sendRoster(){var d={t:"roster",list:S.roster};broadcast(d);renderRoster
 function onData(conn,d){
   if(!d||typeof d!=="object")return;
   if(d.t==="chess"){chessRecv(d);return}
+  if(d.t==="snd"){
+    var nw=Date.now();if(nw-lastSnd<120)return;lastSnd=nw;
+    var pp=Math.min(2,Math.max(.4,Number(d.p)||1));
+    playSnd(clean(d.id,10),pp);
+    if(S.isHost)broadcast({t:"snd",id:clean(d.id,10),p:pp},conn);
+    return;
+  }
   if(d.t==="hello"&&S.isHost){
     conn.peerName=clean(d.name,20)||"guest";
     if(S.roster.indexOf(conn.peerName)<0)S.roster.push(conn.peerName);
@@ -326,9 +341,9 @@ function chessRecv(d){
 }
 function panel(ch){
   $("chessWrap").style.display=ch==="chess"?"flex":"none";
-  var gm=ch==="games",mm=ch==="memes";
-  $("gamesWrap").style.display=gm?"flex":"none";$("memeWrap").style.display=mm?"flex":"none";
-  $("msgs").style.display=(gm||mm)?"none":"";$("bar").style.display=(gm||mm)?"none":"";
+  var gm=ch==="games",mm=ch==="memes",sm=ch==="sounds";
+  $("gamesWrap").style.display=gm?"flex":"none";$("memeWrap").style.display=mm?"flex":"none";$("sndWrap").style.display=sm?"flex":"none";
+  $("msgs").style.display=(gm||mm||sm)?"none":"";$("bar").style.display=(gm||mm||sm)?"none":"";
   if(mm)memeDraw();
   if(!gm&&GM.stop){GM.stop();GM.stop=null}
   if(gm){$("gscore").textContent="Pick a game above.";var cx=$("gc").getContext("2d");cx.fillStyle="#1e1f22";cx.fillRect(0,0,360,360)}
@@ -561,6 +576,13 @@ var MEMES=(function(){
 ⏳|Download: 99%|stays at 99%
 🛠️|Fixed it with tape|engineering excellence
 🔊|Volume at 100%|neighbors know my taste`],
+  ["Banana",`🍌|I am a banana|peel me a story
+🍌|Banana split|best decision of my life
+🍌|Banana peel on the floor|physics: activated
+🍌|Banana phone|ring ring ring
+🍌|Ripe at 2 PM|brown by 2:05
+🍌|Monkey sees a banana|say no more
+🍌|One banana|the perfect snack`],
   ["Life",`☕|Before coffee|zombie mode
 🛏️|Just five more minutes|three hours later
 🌧️|Forgot an umbrella|of course it rains
@@ -618,13 +640,91 @@ function memeGen(){
 }
 (function(){
   var c=$("mchips");
-  ["All","School","Gaming","Food","Pets","Tech","Life"].forEach(function(n,i){
+  ["All","Banana","School","Gaming","Food","Pets","Tech","Life"].forEach(function(n,i){
     var b=document.createElement("button");b.textContent=n;b.className="chip"+(i?"":" on");
     b.onclick=function(){mcat=n;[].forEach.call(c.children,function(x){x.classList.toggle("on",x===b)});memeDraw()};
     c.appendChild(b);
   });
   $("msearch").oninput=function(){mq=this.value.toLowerCase().trim();memeDraw()};
   $("mrand").onclick=memeGen;
+})();
+
+/* ---------- Soundboard (all sounds are synthesized, no audio files) ---------- */
+var AC=null,PM=1,lastSnd=0;
+function ac(){
+  if(!AC){var C=window.AudioContext||window.webkitAudioContext;if(C)AC=new C()}
+  if(AC&&AC.state==="suspended")AC.resume();
+  return AC;
+}
+document.addEventListener("touchstart",ac,{once:true,passive:true});
+document.addEventListener("click",ac,{once:true});
+function tn(f,d,ty,t,v,to){
+  var o=AC.createOscillator(),g=AC.createGain();
+  o.type=ty||"sine";o.frequency.setValueAtTime(f*PM,t);
+  if(to)o.frequency.exponentialRampToValueAtTime(to*PM,t+d);
+  g.gain.setValueAtTime(v||.3,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+  o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+d+.02);
+}
+function ns(d,t,v,fr,ty,to){
+  var n=AC.sampleRate*d|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);
+  for(var i=0;i<n;i++)a[i]=Math.random()*2-1;
+  var src=AC.createBufferSource();src.buffer=b;
+  var fl=AC.createBiquadFilter();fl.type=ty||"lowpass";fl.frequency.setValueAtTime(fr||2000,t);
+  if(to)fl.frequency.exponentialRampToValueAtTime(to,t+d);
+  var g=AC.createGain();g.gain.setValueAtTime(v||.3,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+  src.connect(fl);fl.connect(g);g.connect(AC.destination);src.start(t);
+}
+function say(txt){
+  if(!window.speechSynthesis)return;
+  var u=new SpeechSynthesisUtterance(txt);
+  u.pitch=Math.min(2,Math.max(.1,PM*1.5));u.rate=1.1;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+var SNDS=[
+["ban","🍌","I am a banana",function(t){say("I am a banana!")}],
+["air","📯","Airhorn",function(t){[0,.28,.56].forEach(function(o,i){var d=i<2?.22:.7;tn(466,d,"sawtooth",t+o,.25);tn(622,d,"sawtooth",t+o,.2);tn(932,d,"square",t+o,.1)})}],
+["sad","🎺","Sad trombone",function(t){[311,294,277].forEach(function(f,i){tn(f,.4,"sawtooth",t+i*.42,.25)});tn(262,1,"sawtooth",t+1.26,.25,170)}],
+["rim","🥁","Rimshot",function(t){ns(.12,t,.5,1800,"highpass");tn(150,.15,"sine",t,.6,60);ns(.12,t+.18,.5,1800,"highpass");ns(.9,t+.4,.35,6000,"highpass")}],
+["ding","🔔","Ding",function(t){tn(1318,1.2,"sine",t,.35);tn(2637,.6,"sine",t,.1)}],
+["err","❌","Error",function(t){tn(180,.18,"square",t,.25);tn(180,.18,"square",t+.25,.25)}],
+["boing","🪀","Boing",function(t){tn(180,.5,"sine",t,.5,700);tn(700,.4,"sine",t+.45,.4,150)}],
+["cash","💰","Cha-ching",function(t){ns(.05,t,.4,5000,"highpass");ns(.05,t+.07,.4,5000,"highpass");tn(2093,.9,"sine",t+.15,.3);tn(2637,.9,"sine",t+.15,.2)}],
+["scr","💿","Record scratch",function(t){ns(.45,t,.5,1200,"bandpass",300);tn(900,.4,"sawtooth",t,.15,120)}],
+["laugh","😂","Laugh track",function(t){for(var i=0;i<7;i++)ns(.12,t+i*.17,.4,900+(i%2)*300,"bandpass")}],
+["win","🏆","Victory",function(t){[523,659,784,1047].forEach(function(f,i){tn(f,i<3?.16:.7,"square",t+i*.17,.2)})}],
+["over","💀","Game over",function(t){[392,370,349,330].forEach(function(f,i){tn(f,.3,"triangle",t+i*.3,.35)});tn(262,.9,"triangle",t+1.2,.35,130)}],
+["coin","🪙","Coin",function(t){tn(988,.08,"square",t,.2);tn(1319,.5,"square",t+.08,.2)}],
+["pwr","⚡","Power up",function(t){for(var i=0;i<6;i++)tn(330*Math.pow(1.26,i),.1,"square",t+i*.07,.18)}],
+["bruh","😐","Bruh",function(t){tn(140,.55,"sawtooth",t,.35,70);tn(70,.6,"sine",t,.6,45)}],
+["whoosh","💨","Whoosh",function(t){ns(.7,t,.45,300,"bandpass",4000)}],
+["boom","💥","Explosion",function(t){ns(1.2,t,.8,600,"lowpass");tn(90,.9,"sine",t,.8,30)}],
+["laser","🔫","Laser",function(t){tn(1800,.3,"sawtooth",t,.2,150)}],
+["sting","😱","Dramatic",function(t){tn(110,1.4,"sawtooth",t,.3);tn(117,1.4,"sawtooth",t,.3);tn(1760,.3,"square",t,.1)}],
+["cric","🦗","Crickets",function(t){for(var i=0;i<8;i++)tn(4300,.05,"sine",t+i*.2+(i%2)*.06,.12)}],
+["knock","🚪","Knock knock",function(t){[0,.22,.44].forEach(function(o){tn(160,.12,"sine",t+o,.7,70);ns(.05,t+o,.3,800)})}],
+["roll","🥁","Drumroll",function(t){for(var i=0;i<26;i++)ns(.07,t+i*.065,.12+i*.012,1500,"highpass");ns(.6,t+1.8,.5,5000,"highpass")}],
+["pop","🫧","Pop",function(t){tn(900,.1,"sine",t,.5,180)}],
+["wow","😮","Wow",function(t){tn(500,.5,"sine",t,.3,1800)}],
+["whoop","🎈","Whoopee",function(t){tn(160,.5,"sawtooth",t,.35,60)}],
+["tada","🎉","Ta-da",function(t){tn(523,.15,"square",t,.2);tn(659,.15,"square",t+.15,.2);[523,659,784].forEach(function(f){tn(f,.8,"square",t+.32,.15)})}]
+];
+function playSnd(id,pm){
+  var a=ac();if(!a)return;
+  var s=SNDS.filter(function(x){return x[0]===id})[0];
+  if(s){PM=pm||1;s[3](a.currentTime+.02);PM=1}
+}
+(function(){
+  var g=$("sgrid");
+  SNDS.forEach(function(x){
+    var b=document.createElement("button");b.className="sb";
+    var e=document.createElement("span");e.textContent=x[1];b.appendChild(e);b.appendChild(document.createTextNode(x[2]));
+    b.onclick=function(){
+      var pm=Number($("spitch").value)||1;
+      playSnd(x[0],pm);
+      if($("sall").checked&&S.peer)broadcast({t:"snd",id:x[0],p:pm});
+    };
+    g.appendChild(b);
+  });
 })();
 
 /* ---------- Wiring ---------- */
