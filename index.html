@@ -1,469 +1,197 @@
-using UnityEngine;
-using System.Collections.Generic;
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Stickman Clash Clone</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #111116;
+        color: #ffffff;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        overflow: hidden;
+      }
+      #game-container {
+        position: relative;
+        width: 960px;
+        height: 600px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid #33333c;
+        background-color: #000000;
+      }
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      #loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #1a1a24;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease;
+        z-index: 10;
+      }
+      .spinner {
+        width: 50px;
+        height: 50px;
+        border: 5px solid #333;
+        border-top: 5px solid #00ffff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      #progress-bar {
+        width: 200px;
+        height: 10px;
+        background-color: #333;
+        border-radius: 5px;
+        margin-top: 20px;
+        overflow: hidden;
+      }
+      #progress-fill {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #00ffff, #ff007f);
+        transition: width 0.2s ease;
+      }
+      #loading-text {
+        margin-top: 12px;
+        font-size: 14px;
+        letter-spacing: 2px;
+        color: #888899;
+      }
+      #instructions {
+        margin-top: 20px;
+        text-align: center;
+        max-width: 600px;
+        color: #aaaaaa;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+      .controls-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+        margin-top: 15px;
+        background-color: #1a1a24;
+        padding: 15px 25px;
+        border-radius: 6px;
+        border: 1px solid #2a2a35;
+      }
+      .player-panel h3 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+      }
+      .p1-title { color: #00ffff; }
+      .p2-title { color: #ff3333; }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
 
-// =========================================================================
-// STICKMAN CLASH MASTER ARCHITECTURE
-// Central orchestrator that handles round systems, player spawning, and UI loops.
-// Attach this script to an empty GameObject in your scene named "GameManager".
-// =========================================================================
+    <div id="game-container">
+      <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div id="progress-bar">
+          <div id="progress-fill"></div>
+        </div>
+        <div id="loading-text">LOADING ENGINE... <span id="percent">0%</span></div>
+      </div>
+      <canvas id="unity-canvas"></canvas>
+    </div>
 
-public class StickmanClashClone : MonoBehaviour
-{
-    [Header("Game Loop Setup")]
-    public GameObject player1Prefab;
-    public GameObject player2Prefab;
-    public Transform p1SpawnPoint;
-    public Transform p2SpawnPoint;
-    
-    [Header("Score Configuration")]
-    [SerializeField] private int roundsToWinMatch = 3;
+    <div id="instructions">
+      <h2>Stickman Clash Master Arena</h2>
+      <div class="controls-grid">
+        <div class="player-panel">
+          <h3 class="p1-title">Player 1 (Left)</h3>
+          <strong>Move:</strong> A / D Keys<br>
+          <strong>Jump:</strong> Spacebar<br>
+          <strong>Attack:</strong> Left Click (Fire1)
+        </div>
+        <div class="player-panel">
+          <h3 class="p2-title">Player 2 (Right)</h3>
+          <strong>Move:</strong> Left / Right Arrows<br>
+          <strong>Jump:</strong> Up Arrow<br>
+          <strong>Attack:</strong> Right Control
+        </div>
+      </div>
+    </div>
 
-    private int p1Score = 0;
-    private int p2Score = 0;
-    private GameObject spawnedP1;
-    private GameObject spawnedP2;
-    private bool roundEnding = false;
-    private string centerStatusText = "GET READY!";
+    <script>
+      // Automatically dynamically hooks into whatever names Unity exports
+      var container = document.querySelector("#game-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingOverlay = document.querySelector("#loading-overlay");
+      var progressFill = document.querySelector("#progress-fill");
+      var percentText = document.querySelector("#percent");
 
-    private static StickmanClashClone _instance;
-    public static StickmanClashClone Instance { get { return _instance; } }
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/Build.loader.js"; 
+      var config = {
+        dataUrl: buildUrl + "/Build.data",
+        frameworkUrl: buildUrl + "/Build.framework.js",
+        codeUrl: buildUrl + "/Build.wasm",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "StickmanClashClone",
+        productVersion: "1.0",
+      };
 
-    void Awake()
-    {
-        if (_instance == null) _instance = this;
-        else Destroy(gameObject);
-    }
-
-    void Start()
-    {
-        StartNewMatch();
-    }
-
-    public void StartNewMatch()
-    {
-        p1Score = 0;
-        p2Score = 0;
-        StartCoroutine(ResetRoundRoutine("MATCH STARTING"));
-    }
-
-    public void PlayerDied(int playerNumber)
-    {
-        if (roundEnding) return;
-        roundEnding = true;
-
-        if (playerNumber == 1)
-        {
-            p2Score++;
-            centerStatusText = "PLAYER 2 WINS ROUND!";
-        }
-        else
-        {
-            p1Score++;
-            centerStatusText = "PLAYER 1 WINS ROUND!";
-        }
-
-        if (p1Score >= roundsToWinMatch)
-        {
-            centerStatusText = "PLAYER 1 IS THE CHAMPION!";
-            StartCoroutine(MatchEndRoutine());
-        }
-        else if (p2Score >= roundsToWinMatch)
-        {
-            centerStatusText = "PLAYER 2 IS THE CHAMPION!";
-            StartCoroutine(MatchEndRoutine());
-        }
-        else
-        {
-            StartCoroutine(ResetRoundRoutine(centerStatusText));
-        }
-    }
-
-    private System.Collections.IEnumerator ResetRoundRoutine(string announcement)
-    {
-        centerStatusText = announcement;
-        
-        if (spawnedP1 != null) Destroy(spawnedP1);
-        if (spawnedP2 != null) Destroy(spawnedP2);
-        
-        WeaponPickup[] oldWeapons = FindObjectsByType<WeaponPickup>(FindObjectsSortMode.None);
-        foreach (WeaponPickup w in oldWeapons) Destroy(w.gameObject);
-
-        yield return new WaitForSeconds(1.5f);
-
-        if (player1Prefab != null && p1SpawnPoint != null)
-            spawnedP1 = Instantiate(player1Prefab, p1SpawnPoint.position, Quaternion.identity);
-        if (player2Prefab != null && p2SpawnPoint != null)
-            spawnedP2 = Instantiate(player2Prefab, p2SpawnPoint.position, Quaternion.identity);
-
-        // Fixed: Safer component check prioritizing root, falling back to children to eliminate instantiation race errors.
-        if (spawnedP1 != null)
-        {
-            PlayerHealth h1 = spawnedP1.GetComponent<PlayerHealth>() ?? spawnedP1.GetComponentInChildren<PlayerHealth>();
-            if (h1 != null) h1.playerNumber = 1;
-        }
-        if (spawnedP2 != null)
-        {
-            PlayerHealth h2 = spawnedP2.GetComponent<PlayerHealth>() ?? spawnedP2.GetComponentInChildren<PlayerHealth>();
-            if (h2 != null) h2.playerNumber = 2;
-        }
-
-        centerStatusText = "FIGHT!";
-        yield return new WaitForSeconds(0.8f);
-        centerStatusText = "";
-        roundEnding = false;
-    }
-
-    private System.Collections.IEnumerator MatchEndRoutine()
-    {
-        yield return new WaitForSeconds(3.0f);
-        StartNewMatch();
-    }
-
-    void OnGUI()
-    {
-        GUIStyle scoringStyle = new GUIStyle();
-        scoringStyle.fontSize = 28;
-        scoringStyle.normal.textColor = Color.cyan;
-        scoringStyle.alignment = TextAnchor.UpperLeft;
-
-        GUI.Label(new Rect(20, 20, 300, 50), "P1 SCORE: " + p1Score, scoringStyle);
-
-        scoringStyle.alignment = TextAnchor.UpperRight;
-        scoringStyle.normal.textColor = Color.red;
-        GUI.Label(new Rect(Screen.width - 320, 20, 300, 50), "P2 SCORE: " + p2Score, scoringStyle);
-
-        if (!string.IsNullOrEmpty(centerStatusText))
-        {
-            GUIStyle statusStyle = new GUIStyle();
-            statusStyle.fontSize = 42;
-            statusStyle.fontStyle = FontStyle.Bold;
-            statusStyle.normal.textColor = Color.yellow;
-            statusStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(Screen.width / 2 - 400, Screen.height / 2 - 50, 800, 100), centerStatusText, statusStyle);
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 1: PLAYER PHYSICS CONTROLLER
-// =========================================================================
-[RequireComponent(typeof(Rigidbody2D))]
-public class PlayerController : MonoBehaviour
-{
-    [Header("Movement Settings")]
-    [SerializeField] private float moveSpeed = 9f; 
-    [SerializeField] private float jumpForce = 13f;
-    [SerializeField] private float airControlFactor = 0.85f; 
-
-    [Header("Ground Check")]
-    [SerializeField] private Transform groundCheckPoint;
-    [SerializeField] private float groundCheckRadius = 0.2f;
-    [SerializeField] private LayerMask groundLayer;
-
-    [Header("Weapon Rig Anchor")]
-    public Transform handAnchor; 
-
-    private Rigidbody2D rb;
-    private float horizontalInput;
-    private bool isGrounded;
-    private bool jumpRequested;
-    private float facingDirection = 1f;
-    private PlayerHealth health;
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        health = GetComponent<PlayerHealth>();
-        rb.freezeRotation = true; 
-        rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
-
-        if (groundCheckPoint == null)
-        {
-            groundCheckPoint = this.transform;
-        }
-    }
-
-    void Update()
-    {
-        if (health != null && health.playerNumber == 2)
-        {
-            horizontalInput = 0;
-            if (Input.GetKey(KeyCode.LeftArrow)) horizontalInput = -1;
-            if (Input.GetKey(KeyCode.RightArrow)) horizontalInput = 1;
-            if (Input.GetKeyDown(KeyCode.UpArrow) && isGrounded) jumpRequested = true;
-            if (Input.GetKeyDown(KeyCode.RightControl) && handAnchor != null && handAnchor.childCount > 0) TriggerWeaponAttack();
-        }
-        else
-        {
-            horizontalInput = Input.GetAxisRaw("Horizontal"); 
-            if (Input.GetButtonDown("Jump") && isGrounded) jumpRequested = true;
-            if (Input.GetButtonDown("Fire1") && handAnchor != null && handAnchor.childCount > 0) TriggerWeaponAttack();
-        }
-
-        if (horizontalInput != 0)
-        {
-            facingDirection = Mathf.Sign(horizontalInput);
-            transform.localScale = new Vector3(facingDirection, 1f, 1f);
-        }
-    }
-
-    void TriggerWeaponAttack()
-    {
-        WeaponPickup activeWeapon = handAnchor.GetComponentInChildren<WeaponPickup>();
-        if (activeWeapon != null) activeWeapon.UseWeapon(facingDirection);
-    }
-
-    void FixedUpdate()
-    {
-        if (groundCheckPoint != null)
-        {
-            isGrounded = Physics2D.OverlapCircle(groundCheckPoint.position, groundCheckRadius, groundLayer);
-        }
-        else
-        {
-            isGrounded = false;
-        }
-
-        float targetSpeed = horizontalInput * moveSpeed;
-        if (!isGrounded) targetSpeed *= airControlFactor;
-
-        rb.velocity = new Vector2(targetSpeed, rb.velocity.y);
-
-        if (jumpRequested)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-            jumpRequested = false;
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 2A: PLAYER HEALTH SYSTEM
-// =========================================================================
-public class PlayerHealth : MonoBehaviour
-{
-    public int playerNumber = 1;
-    [SerializeField] private float maxHealth = 100f;
-    private float currentHealth;
-    public bool isDead { get; private set; }
-
-    void Start()
-    {
-        currentHealth = maxHealth;
-        isDead = false;
-    }
-
-    public void TakeDamage(float amount)
-    {
-        if (isDead) return;
-
-        currentHealth -= amount;
-        if (currentHealth <= 0)
-        {
-            isDead = true;
-            if (StickmanClashClone.Instance != null)
-            {
-                StickmanClashClone.Instance.PlayerDied(playerNumber);
-            }
-            Destroy(gameObject); // Fixed: Ensure player object is removed on round death so loops can progress
-        }
-    }
-
-    public void Die()
-    {
-        TakeDamage(maxHealth * 2f);
-    }
-}
-
-// =========================================================================
-// MODULE 2B: PHYSICS-BASED IMPACT DAMAGE
-// =========================================================================
-public class PhysicsDamageDealer : MonoBehaviour
-{
-    [SerializeField] private float minVelocityToDamage = 4f;
-    [SerializeField] private float damageMultiplier = 2f;
-    private Rigidbody2D parentRb;
-
-    void Start()
-    {
-        parentRb = GetComponentInParent<Rigidbody2D>();
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.transform.IsChildOf(transform.root)) return;
-
-        PlayerHealth enemyHealth = collision.GetComponentInParent<PlayerHealth>();
-        if (enemyHealth != null && parentRb != null)
-        {
-            float impactVelocity = parentRb.velocity.magnitude;
-            if (impactVelocity >= minVelocityToDamage)
-            {
-                enemyHealth.TakeDamage(Mathf.Round(impactVelocity * damageMultiplier));
-                
-                Rigidbody2D enemyRb = collision.GetComponentInParent<Rigidbody2D>();
-                if (enemyRb != null)
-                {
-                    Vector2 pushDirection = (collision.transform.position - transform.position).normalized;
-                    enemyRb.AddForce(pushDirection * impactVelocity * 5f, ForceMode2D.Impulse);
-                }
-            }
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 3 & 4: COMPREHENSIVE COMBAT & WEAPONS MODES
-// =========================================================================
-public class WeaponPickup : MonoBehaviour
-{
-    public enum WeaponType { Melee, Ranged }
-    public WeaponType type;
-    public float baseDamage = 20f;
-    public float attackCooldown = 0.4f;
-    public GameObject projectilePrefab;
-    public Transform firePoint;
-
-    private bool isEquipped = false;
-    private bool isAttacking = false;
-    private float cooldownTimer;
-    private Rigidbody2D rb;
-    private Quaternion originalRotation;
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        originalRotation = transform.localRotation;
-        if (rb != null)
-        {
-            rb.gravityScale = 0.15f;
-            rb.freezeRotation = true;
-        }
-    }
-
-    void Update()
-    {
-        if (cooldownTimer > 0) cooldownTimer -= Time.deltaTime;
-    }
-
-    public void UseWeapon(float direction)
-    {
-        if (cooldownTimer > 0 || isAttacking) return;
-        cooldownTimer = attackCooldown;
-
-        if (type == WeaponType.Melee)
-        {
-            StartCoroutine(MeleeSwingRoutine());
-        }
-        else if (type == WeaponType.Ranged && projectilePrefab != null)
-        {
-            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
-            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
-            Projectile bullet = proj.GetComponent<Projectile>();
-            if (bullet != null) bullet.Launch(direction, baseDamage);
-        }
-    }
-
-    private System.Collections.IEnumerator MeleeSwingRoutine()
-    {
-        isAttacking = true;
-        float elapsed = 0f;
-        float duration = 0.12f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(0f, -95f, elapsed / duration));
-            yield return null;
-        }
-        elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(-95f, 0f, elapsed / duration));
-            yield return null;
-        }
-        transform.localRotation = originalRotation;
-        isAttacking = false;
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (isEquipped)
-        {
-            if (isAttacking && type == WeaponType.Melee)
-            {
-                if (collision.transform.IsChildOf(transform.root)) return;
-                PlayerHealth enemy = collision.GetComponentInParent<PlayerHealth>();
-                if (enemy != null) enemy.TakeDamage(baseDamage);
-            }
-            return;
-        }
-
-        PlayerController player = collision.GetComponent<PlayerController>();
-        if (player != null && player.handAnchor != null)
-        {
-            if (player.handAnchor.childCount > 0) Destroy(player.handAnchor.GetChild(0).gameObject);
-            isEquipped = true;
-            if (rb != null) Destroy(rb);
-            transform.SetParent(player.handAnchor);
-            transform.localPosition = Vector3.zero;
-            transform.localRotation = Quaternion.identity;
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 4B: PROJECTILE TRAJECTORY LOGIC
-// =========================================================================
-[RequireComponent(typeof(Rigidbody2D))]
-public class Projectile : MonoBehaviour
-{
-    [SerializeField] private float speed = 18f;
-    [SerializeField] private float lifetime = 3f;
-    [SerializeField] private float knockbackForce = 15f;
-
-    private Rigidbody2D rb;
-    private float damage;
-
-    public void Launch(float direction, float weaponDamage)
-    {
-        rb = GetComponent<Rigidbody2D>();
-        damage = weaponDamage;
-        rb.gravityScale = 0f;
-        rb.velocity = new Vector2(direction * speed, 0f);
-        Destroy(gameObject, lifetime);
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.transform.IsChildOf(transform.root)) return;
-
-        PlayerHealth enemy = collision.GetComponentInParent<PlayerHealth>();
-        if (enemy != null)
-        {
-            enemy.TakeDamage(damage);
-            Rigidbody2D enemyRb = collision.GetComponentInParent<Rigidbody2D>();
-            if (enemyRb != null)
-            {
-                enemyRb.AddForce(new Vector2(Mathf.Sign(rb.velocity.x), 0.2f).normalized * knockbackForce, ForceMode2D.Impulse);
-            }
-            Destroy(gameObject);
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 5B: ARENA ENVIRONMENTAL HAZARDS (Lava, Voids, Spikes)
-// Attach this to any boundary or hazard mesh with a 2D Collider trigger.
-// =========================================================================
-public class HazardVolume : MonoBehaviour
-{
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        PlayerHealth player = collision.GetComponentInParent<PlayerHealth>();
-        if (player != null)
-        {
-            player.Die();
-        }
-    }
-}
+      // Create script tag to dynamically parse loading structures
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          var percentage = Math.round(100 * progress);
+          progressFill.style.width = percentage + "%";
+          percentText.textContent = percentage + "%";
+        }).then((unityInstance) => {
+          loadingOverlay.style.opacity = "0";
+          setTimeout(() => {
+            loadingOverlay.style.display = "none";
+          }, 500);
+        }).catch((message) => {
+          // Fallback message showing instructions if local files are missing
+          document.querySelector("#loading-text").innerHTML = 
+            "<span style='color: #ff3333;'>WebGL Engine Assets Missing!</span><br><br>" +
+            "Please make sure your Unity build folder files (Build.data, Build.wasm, etc.)<br>" +
+            "are placed correctly inside a folder named <strong>Build</strong> right next to this index.html file.";
+          document.querySelector(".spinner").style.display = "none";
+          document.querySelector("#progress-bar").style.display = "none";
+          console.error(message);
+        });
+      };
+      
+      // Safety catch if page is previewed locally before compiling dependencies
+      script.onerror = () => {
+        document.querySelector("#loading-text").innerHTML = 
+          "<span style='color: #ffaa00;'>Waiting for WebGL Compilation Portfolio Assets...</span><br><br>" +
+          "Your page structure looks ready! Once you copy your Unity WebGL export folders<br>" +
+          "(<strong>Build</strong> and <strong>TemplateData</strong>) into this GitHub repository, your game will load here.";
+        document.querySelector(".spinner").style.display = "none";
+        document.querySelector("#progress-bar").style.display = "none";
+      };
+      
+      document.body.appendChild(script);
+    </script>
+  </body>
+</html>
