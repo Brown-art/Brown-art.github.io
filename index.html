@@ -82,7 +82,6 @@ public class StickmanClashClone : MonoBehaviour
     {
         centerStatusText = announcement;
         
-        // Clean up current players and weapons left on map
         if (spawnedP1 != null) Destroy(spawnedP1);
         if (spawnedP2 != null) Destroy(spawnedP2);
         
@@ -91,15 +90,21 @@ public class StickmanClashClone : MonoBehaviour
 
         yield return new WaitForSeconds(1.5f);
 
-        // Respawn players
         if (player1Prefab != null && p1SpawnPoint != null)
             spawnedP1 = Instantiate(player1Prefab, p1SpawnPoint.position, Quaternion.identity);
         if (player2Prefab != null && p2SpawnPoint != null)
             spawnedP2 = Instantiate(player2Prefab, p2SpawnPoint.position, Quaternion.identity);
 
-        // Assign player identity indices manually
-        if (spawnedP1 != null) spawnedP1.GetComponent<PlayerHealth>().playerNumber = 1;
-        if (spawnedP2 != null) spawnedP2.GetComponent<PlayerHealth>().playerNumber = 2;
+        if (spawnedP1 != null)
+        {
+            PlayerHealth h1 = spawnedP1.GetComponentInChildren<PlayerHealth>();
+            if (h1 != null) h1.playerNumber = 1;
+        }
+        if (spawnedP2 != null)
+        {
+            PlayerHealth h2 = spawnedP2.GetComponentInChildren<PlayerHealth>();
+            if (h2 != null) h2.playerNumber = 2;
+        }
 
         centerStatusText = "FIGHT!";
         yield return new WaitForSeconds(0.8f);
@@ -113,7 +118,6 @@ public class StickmanClashClone : MonoBehaviour
         StartNewMatch();
     }
 
-    // WebGL-Safe Dynamic Retro Overlay GUI
     void OnGUI()
     {
         GUIStyle scoringStyle = new GUIStyle();
@@ -121,15 +125,12 @@ public class StickmanClashClone : MonoBehaviour
         scoringStyle.normal.textColor = Color.cyan;
         scoringStyle.alignment = TextAnchor.UpperLeft;
 
-        // Player 1 HUD score display
         GUI.Label(new Rect(20, 20, 300, 50), "P1 SCORE: " + p1Score, scoringStyle);
 
-        // Player 2 HUD score display
         scoringStyle.alignment = TextAnchor.UpperRight;
         scoringStyle.normal.textColor = Color.red;
         GUI.Label(new Rect(Screen.width - 320, 20, 300, 50), "P2 SCORE: " + p2Score, scoringStyle);
 
-        // Central Match Announcement Display
         if (!string.IsNullOrEmpty(centerStatusText))
         {
             GUIStyle statusStyle = new GUIStyle();
@@ -137,7 +138,7 @@ public class StickmanClashClone : MonoBehaviour
             statusStyle.fontStyle = FontStyle.Bold;
             statusStyle.normal.textColor = Color.yellow;
             statusStyle.alignment = TextAnchor.MiddleCenter;
-            GUI.Label(new Rect(Screen.width / 2 - 250, Screen.height / 2 - 50, 500, 100), centerStatusText, statusStyle);
+            GUI.Label(new Rect(Screen.width / 2 - 400, Screen.height / 2 - 50, 800, 100), centerStatusText, statusStyle);
         }
     }
 }
@@ -174,24 +175,28 @@ public class PlayerController : MonoBehaviour
         health = GetComponent<PlayerHealth>();
         rb.freezeRotation = true; 
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        if (groundCheckPoint == null)
+        {
+            groundCheckPoint = this.transform;
+        }
     }
 
     void Update()
     {
-        // Custom input parsing to decouple P1 keyboard inputs versus P2 arrow arrays
         if (health != null && health.playerNumber == 2)
         {
             horizontalInput = 0;
             if (Input.GetKey(KeyCode.LeftArrow)) horizontalInput = -1;
             if (Input.GetKey(KeyCode.RightArrow)) horizontalInput = 1;
             if (Input.GetKeyDown(KeyCode.UpArrow) && isGrounded) jumpRequested = true;
-            if (Input.GetKeyDown(KeyCode.RightControl) && handAnchor.childCount > 0) TriggerWeaponAttack();
+            if (Input.GetKeyDown(KeyCode.RightControl) && handAnchor != null && handAnchor.childCount > 0) TriggerWeaponAttack();
         }
         else
         {
             horizontalInput = Input.GetAxisRaw("Horizontal"); 
             if (Input.GetButtonDown("Jump") && isGrounded) jumpRequested = true;
-            if (Input.GetButtonDown("Fire1") && handAnchor.childCount > 0) TriggerWeaponAttack();
+            if (Input.GetButtonDown("Fire1") && handAnchor != null && handAnchor.childCount > 0) TriggerWeaponAttack();
         }
 
         if (horizontalInput != 0)
@@ -242,200 +247,20 @@ public class PlayerHealth : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (isDead) return;
+
         currentHealth -= amount;
-
-        if (currentHealth <= 0f) Die();
-    }
-
-    public void Die()
-    {
-        if (isDead) return;
-        isDead = true;
-        StickmanClashClone.Instance.PlayerDied(playerNumber);
-        Destroy(gameObject);
-    }
-}
-
-// =========================================================================
-// MODULE 2B: PHYSICS-BASED IMPACT DAMAGE
-// =========================================================================
-public class PhysicsDamageDealer : MonoBehaviour
-{
-    [SerializeField] private float minVelocityToDamage = 4f; 
-    [SerializeField] private float damageMultiplier = 2f;    
-    private Rigidbody2D parentRb;
-
-    void Start()
-    {
-        parentRb = GetComponentInParent<Rigidbody2D>();
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.transform.IsChildOf(transform.root)) return;
-
-        PlayerHealth enemyHealth = collision.GetComponentInParent<PlayerHealth>();
-        if (enemyHealth != null && parentRb != null)
+        if (currentHealth <= 0)
         {
-            float impactVelocity = parentRb.velocity.magnitude;
-            if (impactVelocity >= minVelocityToDamage)
+            isDead = true;
+            if (StickmanClashClone.Instance != null)
             {
-                enemyHealth.TakeDamage(Mathf.Round(impactVelocity * damageMultiplier));
-                Rigidbody2D enemyRb = collision.GetComponentInParent<Rigidbody2D>();
-                if (enemyRb != null)
-                {
-                    Vector2 pushDirection = (collision.transform.position - transform.position).normalized;
-                    enemyRb.AddForce(pushDirection * impactVelocity * 5f, ForceMode2D.Impulse);
-                }
+                StickmanClashClone.Instance.PlayerDied(playerNumber);
             }
         }
     }
 }
 
-// =========================================================================
-// MODULE 3 & 4: COMPREHENSIVE COMBAT & WEAPONS MODES
-// =========================================================================
-public class WeaponPickup : MonoBehaviour
+public class WeaponPickup : MonoBehaviour 
 {
-    public enum WeaponType { Melee, Ranged }
-    public WeaponType type;
-    public float baseDamage = 20f;
-    public float attackCooldown = 0.4f;
-    public GameObject projectilePrefab; 
-    public Transform firePoint; 
-
-    private bool isEquipped = false;
-    private bool isAttacking = false;
-    private float cooldownTimer;
-    private Rigidbody2D rb;
-    private Quaternion originalRotation;
-
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        originalRotation = transform.localRotation;
-        if (rb != null)
-        {
-            rb.gravityScale = 0.15f; 
-            rb.freezeRotation = true;
-        }
-    }
-
-    void Update()
-    {
-        if (cooldownTimer > 0) cooldownTimer -= Time.deltaTime;
-    }
-
-    public void UseWeapon(float direction)
-    {
-        if (cooldownTimer > 0 || isAttacking) return;
-        cooldownTimer = attackCooldown;
-
-        if (type == WeaponType.Melee) StartCoroutine(MeleeSwingRoutine());
-        else if (type == WeaponType.Ranged && projectilePrefab != null)
-        {
-            Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
-            GameObject proj = Instantiate(projectilePrefab, spawnPos, Quaternion.identity);
-            Projectile bullet = proj.GetComponent<Projectile>();
-            if (bullet != null) bullet.Launch(direction, baseDamage);
-        }
-    }
-
-    private System.Collections.IEnumerator MeleeSwingRoutine()
-    {
-        isAttacking = true;
-        float elapsed = 0f;
-        float duration = 0.12f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(0f, -95f, elapsed / duration));
-            yield return null;
-        }
-        elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            transform.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(-95f, 0f, elapsed / duration));
-            yield return null;
-        }
-        transform.localRotation = originalRotation;
-        isAttacking = false;
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (isEquipped)
-        {
-            if (isAttacking && type == WeaponType.Melee)
-            {
-                if (collision.transform.IsChildOf(transform.root)) return;
-                PlayerHealth enemy = collision.GetComponentInParent<PlayerHealth>();
-                if (enemy != null) enemy.TakeDamage(baseDamage);
-            }
-            return;
-        }
-
-        PlayerController player = collision.GetComponent<PlayerController>();
-        if (player != null && player.handAnchor != null)
-        {
-            if (player.handAnchor.childCount > 0) Destroy(player.handAnchor.GetChild(0).gameObject);
-            isEquipped = true;
-            if (rb != null) Destroy(rb); 
-            transform.SetParent(player.handAnchor);
-            transform.localPosition = Vector3.zero;
-            transform.localRotation = Quaternion.identity;
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 4B: PROJECTILE TRAJECTORY LOGIC
-// =========================================================================
-[RequireComponent(typeof(Rigidbody2D))]
-public class Projectile : MonoBehaviour
-{
-    [SerializeField] private float speed = 18f;
-    [SerializeField] private float lifetime = 3f;
-    [SerializeField] private float knockbackForce = 15f;
-    private Rigidbody2D rb;
-    private float damage;
-
-    public void Launch(float direction, float weaponDamage)
-    {
-        rb = GetComponent<Rigidbody2D>();
-        damage = weaponDamage;
-        rb.gravityScale = 0f;
-        rb.velocity = new Vector2(direction * speed, 0f);
-        Destroy(gameObject, lifetime);
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.transform.IsChildOf(transform.root)) return;
-        PlayerHealth enemy = collision.GetComponentInParent<PlayerHealth>();
-        if (enemy != null)
-        {
-            enemy.TakeDamage(damage);
-            Rigidbody2D enemyRb = collision.GetComponentInParent<Rigidbody2D>();
-            if (enemyRb != null) enemyRb.AddForce(new Vector2(Mathf.Sign(rb.velocity.x), 0.2f).normalized * knockbackForce, ForceMode2D.Impulse);
-            Destroy(gameObject);
-        }
-    }
-}
-
-// =========================================================================
-// MODULE 5B: ARENA ENVIRONMENTAL HAZARDS (Lava, Voids, Spikes)
-// Attach this to any boundary or hazard mesh with a 2D Collider trigger.
-// =========================================================================
-public class HazardVolume : MonoBehaviour
-{
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        PlayerHealth player = collision.GetComponentInParent<PlayerHealth>();
-        if (player != null)
-        {
-            player.Die(); 
-        }
-    }
+    public void UseWeapon(float direction) { }
 }
